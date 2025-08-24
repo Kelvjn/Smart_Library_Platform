@@ -1,0 +1,55 @@
+-- Step-by-Step MySQL Commands to Check Your Library Data
+
+-- 1. Switch to the smart_library database
+USE smart_library;
+
+-- 2. Show all tables in the database
+SHOW TABLES;
+
+-- 3. Count total books
+SELECT COUNT(*) AS 'Total Books' FROM books;
+
+-- 4. Count total authors  
+SELECT COUNT(*) AS 'Total Authors' FROM authors;
+
+-- 5. Show all books with basic info
+SELECT book_id, title, genre, publisher, total_copies, available_copies 
+FROM books 
+ORDER BY book_id;
+
+-- 6. Show all authors
+SELECT author_id, CONCAT(first_name, ' ', last_name) AS 'Author Name', nationality 
+FROM authors 
+ORDER BY author_id;
+
+-- 7. Show books with their authors (JOIN query)
+SELECT 
+    b.title AS 'Book Title',
+    CONCAT(a.first_name, ' ', a.last_name) AS 'Author',
+    b.genre AS 'Genre',
+    b.publisher AS 'Publisher',
+    b.total_copies AS 'Total Copies'
+FROM books b
+LEFT JOIN book_authors ba ON b.book_id = ba.book_id
+LEFT JOIN authors a ON ba.author_id = a.author_id
+ORDER BY b.book_id, ba.author_order;
+
+-- 8. Show books by genre
+SELECT genre, COUNT(*) AS 'Number of Books' 
+FROM books 
+GROUP BY genre 
+ORDER BY COUNT(*) DESC;
+
+-- 9. Show most popular books (by number of copies)
+SELECT title, total_copies, available_copies 
+FROM books 
+ORDER BY total_copies DESC 
+LIMIT 5;
+
+-- 10. Search for specific books (example: Fantasy books)
+SELECT title, genre, total_copies 
+FROM books 
+WHERE genre LIKE '%Fantasy%';
+
+-- 11. Exit MySQL
+EXIT;

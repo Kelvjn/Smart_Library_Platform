@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Library Platform</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --light-bg: #ecf0f1;
+            --dark-text: #2c3e50;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            color: var(--dark-text);
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        
+        .navbar-nav .nav-link {
+            color: white !important;
+            transition: all 0.3s ease;
+        }
+        
+        .navbar-nav .nav-link:hover {
+            color: var(--warning-color) !important;
+            transform: translateY(-1px);
+        }
+        
+        .hero-section {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 4rem 0;
+            text-align: center;
+        }
+        
+        .hero-section h1 {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        
+        .hero-section p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        
+        .feature-card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 1rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: none;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            color: var(--secondary-color);
+            margin-bottom: 1rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            border: none;
+            border-radius: 25px;
+            padding: 0.7rem 2rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        .btn-outline-primary {
+            border: 2px solid var(--secondary-color);
+            color: var(--secondary-color);
+            border-radius: 25px;
+            padding: 0.7rem 2rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-outline-primary:hover {
+            background: var(--secondary-color);
+            border-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+        
+        .section-title {
+            text-align: center;
+            margin: 3rem 0;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .stats-section {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--secondary-color);
+        }
+        
+        .stat-label {
+            font-size: 1rem;
+            color: var(--dark-text);
+            opacity: 0.8;
+        }
+        
+        .footer {
+            background: var(--primary-color);
+            color: white;
+            padding: 3rem 0 1rem;
+            margin-top: 4rem;
+        }
+        
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
+        
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+        }
+        
+        .alert {
+            border-radius: 10px;
+            border: none;
+        }
+        
+        .card {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .book-cover {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+        
+        .rating {
+            color: var(--warning-color);
+        }
+        
+        .availability-badge {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .spinner-border {
+            color: var(--secondary-color);
+        }
+        
+        @media (max-width: 768px) {
+            .hero-section h1 {
+                font-size: 2rem;
+            }
+            
+            .hero-section p {
+                font-size: 1rem;
+            }
+            
+            .feature-card {
+                margin: 0.5rem;
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#" id="navBrand">
+                <i class="fas fa-book-open me-2"></i>Smart Library
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="navBooks">
+                            <i class="fas fa-book me-1"></i>Books
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="navAnalytics">
+                            <i class="fas fa-chart-bar me-1"></i>Analytics
+                        </a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav" id="authNavItems">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#loginModal">
+                            <i class="fas fa-sign-in-alt me-1"></i>Login
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#registerModal">
+                            <i class="fas fa-user-plus me-1"></i>Register
+                        </a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav d-none" id="userNavItems">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-1"></i><span id="userName">User</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" id="navDashboard"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+                            <li><a class="dropdown-item" href="#" id="navCheckouts"><i class="fas fa-bookmark me-2"></i>My Checkouts</a></li>
+                            <li><a class="dropdown-item" href="#" id="navReviews"><i class="fas fa-star me-2"></i>My Reviews</a></li>
+                            <li id="adminNavItem" class="d-none"><hr class="dropdown-divider"></li>
+                            <li id="adminNavItem2" class="d-none"><a class="dropdown-item" href="#" id="navAdmin"><i class="fas fa-cog me-2"></i>Admin Panel</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" id="navLogout"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="mainContent">
+        <!-- Hero Section -->
+        <section class="hero-section" id="heroSection">
+            <div class="container">
+                <h1>Welcome to Smart Library Platform</h1>
+                <p>Discover, borrow, and explore thousands of books with our intelligent library management system</p>
+                <div>
+                    <button class="btn btn-light btn-lg me-3" id="exploreButton">
+                        <i class="fas fa-compass me-2"></i>Explore Books
+                    </button>
+                    <button class="btn btn-outline-light btn-lg" data-bs-toggle="modal" data-bs-target="#registerModal">
+                        <i class="fas fa-user-plus me-2"></i>Join Today
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="container my-5" id="featuresSection">
+            <h2 class="section-title">Platform Features</h2>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="feature-card text-center">
+                        <i class="fas fa-search feature-icon"></i>
+                        <h4>Smart Search</h4>
+                        <p>Find books by title, author, genre, or keywords with our advanced search functionality.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card text-center">
+                        <i class="fas fa-mobile-alt feature-icon"></i>
+                        <h4>Digital Reading</h4>
+                        <p>Access eBooks on any device with reading session tracking and analytics.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card text-center">
+                        <i class="fas fa-star feature-icon"></i>
+                        <h4>Reviews & Ratings</h4>
+                        <p>Share your thoughts and discover great books through community reviews.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-4">
+                <div class="col-md-4">
+                    <div class="feature-card text-center">
+                        <i class="fas fa-chart-line feature-icon"></i>
+                        <h4>Reading Analytics</h4>
+                        <p>Track your reading habits and get personalized book recommendations.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card text-center">
+                        <i class="fas fa-bookmark feature-icon"></i>
+                        <h4>Easy Checkout</h4>
+                        <p>Borrow books instantly and manage your reading list with ease.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card text-center">
+                        <i class="fas fa-users feature-icon"></i>
+                        <h4>Community</h4>
+                        <p>Connect with fellow readers and discover trending books in the community.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Section -->
+        <section class="container" id="statsSection">
+            <div class="stats-section">
+                <div class="row">
+                    <div class="col-md-3 stat-item">
+                        <div class="stat-number" id="totalBooks">0</div>
+                        <div class="stat-label">Books Available</div>
+                    </div>
+                    <div class="col-md-3 stat-item">
+                        <div class="stat-number" id="totalUsers">0</div>
+                        <div class="stat-label">Active Readers</div>
+                    </div>
+                    <div class="col-md-3 stat-item">
+                        <div class="stat-number" id="totalCheckouts">0</div>
+                        <div class="stat-label">Books Borrowed</div>
+                    </div>
+                    <div class="col-md-3 stat-item">
+                        <div class="stat-number" id="totalReviews">0</div>
+                        <div class="stat-label">Reviews Written</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Login Modal -->
+    <div class="modal fade" id="loginModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login to Your Account
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="loginForm">
+                        <div class="mb-3">
+                            <label for="loginUsername" class="form-label">Username or Email</label>
+                            <input type="text" class="form-control" id="loginUsername" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="loginPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="loginPassword" required>
+                        </div>
+                        <div id="loginError" class="alert alert-danger d-none"></div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div class="modal fade" id="registerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-user-plus me-2"></i>Create New Account
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="registerForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="registerFirstName" class="form-label">First Name</label>
+                                <input type="text" class="form-control" id="registerFirstName" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="registerLastName" class="form-label">Last Name</label>
+                                <input type="text" class="form-control" id="registerLastName" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="registerUsername" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="registerUsername" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="registerEmail" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="registerEmail" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="registerPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="registerPassword" required>
+                            <div class="form-text">Password must be at least 8 characters long.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="registerPhone" class="form-label">Phone (Optional)</label>
+                            <input type="tel" class="form-control" id="registerPhone">
+                        </div>
+                        <div id="registerError" class="alert alert-danger d-none"></div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-user-plus me-2"></i>Create Account
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-book-open me-2"></i>Smart Library Platform</h5>
+                    <p>A modern library management system with advanced features for readers and staff.</p>
+                </div>
+                <div class="col-md-6">
+                    <h5>Features</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check me-2"></i>Book Search & Discovery</li>
+                        <li><i class="fas fa-check me-2"></i>Digital Reading Analytics</li>
+                        <li><i class="fas fa-check me-2"></i>Review System</li>
+                        <li><i class="fas fa-check me-2"></i>Admin Dashboard</li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-4">
+            <div class="text-center">
+                <p>&copy; 2025 Smart Library Platform. Built by Lu Duc Thinh</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Application JavaScript -->
+    <script>
+        // Application State
+        const App = {
+            user: null,
+            token: localStorage.getItem('library_token'),
+            baseURL: window.location.origin + '/api'
+        };
+
+        // Utility Functions
+        const Utils = {
+            showAlert: (message, type = 'danger', containerId = 'alertContainer') => {
+                const container = document.getElementById(containerId);
+                if (container) {
+                    container.innerHTML = `
+                        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                            ${message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    `;
+                }
+            },
+
+            formatDate: (dateString) => {
+                return new Date(dateString).toLocaleDateString();
+            },
+
+            generateStarRating: (rating) => {
+                const fullStars = Math.floor(rating);
+                const hasHalfStar = rating % 1 !== 0;
+                let stars = '';
+                
+                for (let i = 0; i < fullStars; i++) {
+                    stars += '<i class="fas fa-star text-warning"></i>';
+                }
+                
+                if (hasHalfStar) {
+                    stars += '<i class="fas fa-star-half-alt text-warning"></i>';
+                }
+                
+                const remainingStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+                for (let i = 0; i < remainingStars; i++) {
+                    stars += '<i class="far fa-star text-warning"></i>';
+                }
+                
+                return stars;
+            },
+
+            makeRequest: async (endpoint, options = {}) => {
+                const url = `${App.baseURL}${endpoint}`;
+                const defaultOptions = {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                };
+
+                if (App.token) {
+                    defaultOptions.headers['Authorization'] = `Bearer ${App.token}`;
+                }
+
+                const response = await fetch(url, { ...defaultOptions, ...options });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error?.message || 'Request failed');
+                }
+
+                return data;
+            }
+        };
+
+        // Authentication Functions
+        const Auth = {
+            login: async (username, password) => {
+                try {
+                    const data = await Utils.makeRequest('/auth/login', {
+                        method: 'POST',
+                        body: JSON.stringify({ username, password })
+                    });
+
+                    App.token = data.token;
+                    App.user = data.user;
+                    localStorage.setItem('library_token', data.token);
+                    
+                    UI.updateAuthState();
+                    UI.showHomePage();
+                    
+                    // Close login modal
+                    const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+                    loginModal.hide();
+
+                    Utils.showAlert('Login successful!', 'success');
+                } catch (error) {
+                    document.getElementById('loginError').textContent = error.message;
+                    document.getElementById('loginError').classList.remove('d-none');
+                }
+            },
+
+            register: async (userData) => {
+                try {
+                    const data = await Utils.makeRequest('/auth/register', {
+                        method: 'POST',
+                        body: JSON.stringify(userData)
+                    });
+
+                    App.token = data.token;
+                    App.user = data.user;
+                    localStorage.setItem('library_token', data.token);
+                    
+                    UI.updateAuthState();
+                    UI.showHomePage();
+                    
+                    // Close register modal
+                    const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
+                    registerModal.hide();
+
+                    Utils.showAlert('Registration successful! Welcome to Smart Library!', 'success');
+                } catch (error) {
+                    document.getElementById('registerError').textContent = error.message;
+                    document.getElementById('registerError').classList.remove('d-none');
+                }
+            },
+
+            logout: () => {
+                App.token = null;
+                App.user = null;
+                localStorage.removeItem('library_token');
+                UI.updateAuthState();
+                UI.showHomePage();
+                Utils.showAlert('Logged out successfully!', 'info');
+            },
+
+            checkAuth: async () => {
+                if (App.token) {
+                    try {
+                        const data = await Utils.makeRequest('/auth/profile');
+                        App.user = data.user;
+                        UI.updateAuthState();
+                    } catch (error) {
+                        Auth.logout();
+                    }
+                }
+            }
+        };
+
+        // UI Functions
+        const UI = {
+            updateAuthState: () => {
+                const authNavItems = document.getElementById('authNavItems');
+                const userNavItems = document.getElementById('userNavItems');
+                const userName = document.getElementById('userName');
+                const adminNavItems = document.querySelectorAll('#adminNavItem, #adminNavItem2');
+
+                if (App.user) {
+                    authNavItems.classList.add('d-none');
+                    userNavItems.classList.remove('d-none');
+                    userName.textContent = App.user.first_name || App.user.username;
+
+                    // Show admin items for staff and admin users
+                    if (App.user.user_type === 'staff' || App.user.user_type === 'admin') {
+                        adminNavItems.forEach(item => item.classList.remove('d-none'));
+                    } else {
+                        adminNavItems.forEach(item => item.classList.add('d-none'));
+                    }
+                } else {
+                    authNavItems.classList.remove('d-none');
+                    userNavItems.classList.add('d-none');
+                }
+            },
+
+            showHomePage: () => {
+                document.getElementById('mainContent').innerHTML = `
+                    <!-- Hero Section -->
+                    <section class="hero-section" id="heroSection">
+                        <div class="container">
+                            <h1>Welcome to Smart Library Platform</h1>
+                            <p>Discover, borrow, and explore thousands of books with our intelligent library management system</p>
+                            <div>
+                                <button class="btn btn-light btn-lg me-3" onclick="UI.showBooksPage()">
+                                    <i class="fas fa-compass me-2"></i>Explore Books
+                                </button>
+                                ${!App.user ? `
+                                <button class="btn btn-outline-light btn-lg" data-bs-toggle="modal" data-bs-target="#registerModal">
+                                    <i class="fas fa-user-plus me-2"></i>Join Today
+                                </button>
+                                ` : `
+                                <button class="btn btn-outline-light btn-lg" onclick="UI.showDashboard()">
+                                    <i class="fas fa-tachometer-alt me-2"></i>My Dashboard
+                                </button>
+                                `}
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Features Section -->
+                    <section class="container my-5" id="featuresSection">
+                        <h2 class="section-title">Platform Features</h2>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="feature-card text-center">
+                                    <i class="fas fa-search feature-icon"></i>
+                                    <h4>Smart Search</h4>
+                                    <p>Find books by title, author, genre, or keywords with our advanced search functionality.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="feature-card text-center">
+                                    <i class="fas fa-mobile-alt feature-icon"></i>
+                                    <h4>Digital Reading</h4>
+                                    <p>Access eBooks on any device with reading session tracking and analytics.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="feature-card text-center">
+                                    <i class="fas fa-star feature-icon"></i>
+                                    <h4>Reviews & Ratings</h4>
+                                    <p>Share your thoughts and discover great books through community reviews.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-4">
+                            <div class="col-md-4">
+                                <div class="feature-card text-center">
+                                    <i class="fas fa-chart-line feature-icon"></i>
+                                    <h4>Reading Analytics</h4>
+                                    <p>Track your reading habits and get personalized book recommendations.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="feature-card text-center">
+                                    <i class="fas fa-bookmark feature-icon"></i>
+                                    <h4>Easy Checkout</h4>
+                                    <p>Borrow books instantly and manage your reading list with ease.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="feature-card text-center">
+                                    <i class="fas fa-users feature-icon"></i>
+                                    <h4>Community</h4>
+                                    <p>Connect with fellow readers and discover trending books in the community.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Recent Books Section -->
+                    <section class="container mb-5">
+                        <h2 class="section-title">Featured Books</h2>
+                        <div id="featuredBooksContainer" class="row">
+                            <div class="col-12 text-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                `;
+
+                // Load featured books
+                UI.loadFeaturedBooks();
+            },
+
+            loadFeaturedBooks: async () => {
+                try {
+                    const data = await Utils.makeRequest('/books?limit=6&sort_by=average_rating&sort_order=DESC');
+                    const container = document.getElementById('featuredBooksContainer');
+                    
+                    if (data.books.length === 0) {
+                        container.innerHTML = '<div class="col-12 text-center"><p>No books available at the moment.</p></div>';
+                        return;
+                    }
+
+                    container.innerHTML = data.books.map(book => `
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100">
+                                <img src="${book.cover_image_url || 'https://via.placeholder.com/300x400?text=No+Cover'}" 
+                                     class="card-img-top book-cover" alt="${book.title}">
+                                <div class="card-body d-flex flex-column">
+                                    <h5 class="card-title">${book.title}</h5>
+                                    <p class="card-text text-muted small">by ${book.authors.join(', ')}</p>
+                                    <p class="card-text flex-grow-1">${(book.description || '').substring(0, 100)}...</p>
+                                    <div class="mt-auto">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div class="rating">
+                                                ${Utils.generateStarRating(book.average_rating)}
+                                                <small class="text-muted">(${book.total_reviews})</small>
+                                            </div>
+                                            <span class="availability-badge ${book.is_available ? 'bg-success' : 'bg-danger'} text-white">
+                                                ${book.is_available ? 'Available' : 'Unavailable'}
+                                            </span>
+                                        </div>
+                                        <button class="btn btn-primary btn-sm mt-2 w-100" onclick="UI.showBookDetails(${book.book_id})">
+                                            View Details
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } catch (error) {
+                    document.getElementById('featuredBooksContainer').innerHTML = 
+                        '<div class="col-12 text-center"><p class="text-danger">Failed to load featured books.</p></div>';
+                }
+            },
+
+            showBooksPage: async () => {
+                document.getElementById('mainContent').innerHTML = `
+                    <div class="container my-4">
+                        <h2>Explore Books</h2>
+                        
+                        <!-- Search and Filters -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="bookSearch" placeholder="Search books...">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="UI.searchBooks()">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-select" id="genreFilter">
+                                    <option value="">All Genres</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-select" id="sortBy">
+                                    <option value="title">Sort by Title</option>
+                                    <option value="average_rating">Sort by Rating</option>
+                                    <option value="total_borrowed">Sort by Popularity</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Books Grid -->
+                        <div id="booksContainer" class="row">
+                            <div class="col-12 text-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pagination -->
+                        <nav id="booksPagination" class="mt-4"></nav>
+                    </div>
+                `;
+
+                UI.loadBooks();
+            },
+
+            loadBooks: async (page = 1, search = '', genre = '', sortBy = 'title') => {
+                try {
+                    const params = new URLSearchParams({
+                        page,
+                        limit: 12,
+                        sort_by: sortBy,
+                        sort_order: 'ASC'
+                    });
+
+                    if (search) params.append('search', search);
+                    if (genre) params.append('genre', genre);
+
+                    const data = await Utils.makeRequest(`/books?${params}`);
+                    const container = document.getElementById('booksContainer');
+                    
+                    if (data.books.length === 0) {
+                        container.innerHTML = '<div class="col-12 text-center"><p>No books found.</p></div>';
+                        return;
+                    }
+
+                    container.innerHTML = data.books.map(book => `
+                        <div class="col-md-3 mb-4">
+                            <div class="card h-100">
+                                <img src="${book.cover_image_url || 'https://via.placeholder.com/200x300?text=No+Cover'}" 
+                                     class="card-img-top book-cover" alt="${book.title}" style="height: 250px;">
+                                <div class="card-body d-flex flex-column">
+                                    <h6 class="card-title">${book.title}</h6>
+                                    <p class="card-text text-muted small">by ${book.authors.join(', ')}</p>
+                                    <div class="mt-auto">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <div class="rating small">
+                                                ${Utils.generateStarRating(book.average_rating)}
+                                            </div>
+                                            <span class="availability-badge ${book.is_available ? 'bg-success' : 'bg-danger'} text-white">
+                                                ${book.is_available ? 'Available' : 'Unavailable'}
+                                            </span>
+                                        </div>
+                                        <button class="btn btn-primary btn-sm w-100" onclick="UI.showBookDetails(${book.book_id})">
+                                            View Details
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+
+                    // Update pagination
+                    UI.updatePagination('booksPagination', data.pagination, (newPage) => {
+                        const search = document.getElementById('bookSearch')?.value || '';
+                        const genre = document.getElementById('genreFilter')?.value || '';
+                        const sortBy = document.getElementById('sortBy')?.value || 'title';
+                        UI.loadBooks(newPage, search, genre, sortBy);
+                    });
+
+                    // Populate genre filter if empty
+                    const genreFilter = document.getElementById('genreFilter');
+                    if (genreFilter.children.length === 1 && data.filters.available_genres) {
+                        data.filters.available_genres.forEach(genre => {
+                            const option = document.createElement('option');
+                            option.value = genre;
+                            option.textContent = genre;
+                            genreFilter.appendChild(option);
+                        });
+                    }
+                } catch (error) {
+                    document.getElementById('booksContainer').innerHTML = 
+                        '<div class="col-12 text-center"><p class="text-danger">Failed to load books.</p></div>';
+                }
+            },
+
+            updatePagination: (containerId, pagination, onPageChange) => {
+                const container = document.getElementById(containerId);
+                if (!container || !pagination) return;
+
+                const { current_page, total_pages, has_prev, has_next } = pagination;
+                
+                if (total_pages <= 1) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                let paginationHTML = '<ul class="pagination justify-content-center">';
+                
+                // Previous button
+                paginationHTML += `
+                    <li class="page-item ${!has_prev ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="${has_prev ? `event.preventDefault(); (${onPageChange})(${current_page - 1})` : 'event.preventDefault()'}">
+                            Previous
+                        </a>
+                    </li>
+                `;
+
+                // Page numbers
+                const startPage = Math.max(1, current_page - 2);
+                const endPage = Math.min(total_pages, current_page + 2);
+
+                for (let i = startPage; i <= endPage; i++) {
+                    paginationHTML += `
+                        <li class="page-item ${i === current_page ? 'active' : ''}">
+                            <a class="page-link" href="#" onclick="event.preventDefault(); (${onPageChange})(${i})">${i}</a>
+                        </li>
+                    `;
+                }
+
+                // Next button
+                paginationHTML += `
+                    <li class="page-item ${!has_next ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="${has_next ? `event.preventDefault(); (${onPageChange})(${current_page + 1})` : 'event.preventDefault()'}">
+                            Next
+                        </a>
+                    </li>
+                `;
+
+                paginationHTML += '</ul>';
+                container.innerHTML = paginationHTML;
+            },
+
+            searchBooks: () => {
+                const search = document.getElementById('bookSearch').value;
+                const genre = document.getElementById('genreFilter').value;
+                const sortBy = document.getElementById('sortBy').value;
+                UI.loadBooks(1, search, genre, sortBy);
+            },
+
+            showBookDetails: async (bookId) => {
+                document.getElementById('mainContent').innerHTML = `
+                    <div class="container my-4">
+                        <div class="row">
+                            <div class="col-12">
+                                <button class="btn btn-outline-secondary mb-3" onclick="UI.showBooksPage()">
+                                    <i class="fas fa-arrow-left me-2"></i>Back to Books
+                                </button>
+                            </div>
+                        </div>
+                        <div id="bookDetailsContainer">
+                            <div class="text-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                try {
+                    const data = await Utils.makeRequest(`/books/${bookId}`);
+                    const book = data.book;
+                    
+                    document.getElementById('bookDetailsContainer').innerHTML = `
+                        <div class="row">
+                            <div class="col-md-4">
+                                <img src="${book.cover_image_url || 'https://via.placeholder.com/300x400?text=No+Cover'}" 
+                                     class="img-fluid rounded book-cover" alt="${book.title}">
+                                <div class="mt-3">
+                                    ${App.user && book.is_available ? `
+                                        <button class="btn btn-success w-100 mb-2" onclick="UI.borrowBook(${book.book_id})">
+                                            <i class="fas fa-bookmark me-2"></i>Borrow Book
+                                        </button>
+                                    ` : ''}
+                                    <div class="availability-badge ${book.is_available ? 'bg-success' : 'bg-danger'} text-white w-100 text-center py-2 rounded">
+                                        ${book.is_available ? `Available (${book.available_copies}/${book.total_copies})` : 'Not Available'}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <h1>${book.title}</h1>
+                                <p class="text-muted h5">by ${book.authors.map(a => a.name).join(', ')}</p>
+                                
+                                <div class="rating mb-3">
+                                    ${Utils.generateStarRating(book.average_rating)}
+                                    <span class="ms-2">${book.average_rating.toFixed(1)} (${book.total_reviews} reviews)</span>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <strong>Publisher:</strong> ${book.publisher || 'Unknown'}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Publication Date:</strong> ${book.publication_date ? Utils.formatDate(book.publication_date) : 'Unknown'}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Genre:</strong> ${book.genre || 'Unknown'}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Pages:</strong> ${book.pages || 'Unknown'}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Language:</strong> ${book.language || 'Unknown'}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Format:</strong> ${book.is_ebook ? 'eBook' : 'Physical Book'}
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <h5>Description</h5>
+                                    <p>${book.description || 'No description available.'}</p>
+                                </div>
+
+                                ${book.authors.length > 0 ? `
+                                    <div class="mb-4">
+                                        <h5>Authors</h5>
+                                        ${book.authors.map(author => `
+                                            <div class="mb-2">
+                                                <strong>${author.name}</strong>
+                                                ${author.biography ? `<p class="text-muted small mb-0">${author.biography}</p>` : ''}
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Reviews Section -->
+                        <div class="row mt-5">
+                            <div class="col-12">
+                                <h4>Reviews</h4>
+                                ${App.user ? `
+                                    <div class="mb-3">
+                                        <button class="btn btn-outline-primary" onclick="UI.showAddReviewForm(${book.book_id})">
+                                            <i class="fas fa-plus me-2"></i>Add Review
+                                        </button>
+                                    </div>
+                                ` : ''}
+                                <div id="reviewsContainer">
+                                    <div class="text-center">
+                                        <div class="spinner-border" role="status">
+                                            <span class="visually-hidden">Loading reviews...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Load reviews
+                    UI.loadBookReviews(bookId);
+                } catch (error) {
+                    document.getElementById('bookDetailsContainer').innerHTML = 
+                        '<div class="alert alert-danger">Failed to load book details.</div>';
+                }
+            },
+
+            loadBookReviews: async (bookId) => {
+                try {
+                    const data = await Utils.makeRequest(`/reviews/book/${bookId}`);
+                    const container = document.getElementById('reviewsContainer');
+                    
+                    if (data.reviews.length === 0) {
+                        container.innerHTML = '<p class="text-muted">No reviews yet. Be the first to review this book!</p>';
+                        return;
+                    }
+
+                    container.innerHTML = data.reviews.map(review => `
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <strong>${review.reviewer_name}</strong>
+                                        <div class="rating">
+                                            ${Utils.generateStarRating(review.rating)}
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">${Utils.formatDate(review.review_date)}</small>
+                                </div>
+                                ${review.comment ? `<p class="mt-2 mb-0">${review.comment}</p>` : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                } catch (error) {
+                    document.getElementById('reviewsContainer').innerHTML = 
+                        '<div class="alert alert-danger">Failed to load reviews.</div>';
+                }
+            },
+
+            showDashboard: async () => {
+                if (!App.user) {
+                    Utils.showAlert('Please log in to view your dashboard.', 'warning');
+                    return;
+                }
+
+                document.getElementById('mainContent').innerHTML = `
+                    <div class="container my-4">
+                        <h2>My Dashboard</h2>
+                        <div id="dashboardContainer">
+                            <div class="text-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading dashboard...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                try {
+                    const data = await Utils.makeRequest(`/users/${App.user.user_id}/dashboard`);
+                    const dashboard = data.dashboard;
+                    
+                    document.getElementById('dashboardContainer').innerHTML = `
+                        <!-- User Statistics -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3 class="text-primary">${dashboard.user_statistics.active_checkouts}</h3>
+                                        <p class="card-text">Active Checkouts</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3 class="text-success">${dashboard.user_statistics.unique_books_read}</h3>
+                                        <p class="card-text">Books Read</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3 class="text-warning">${dashboard.user_statistics.total_reviews}</h3>
+                                        <p class="card-text">Reviews Written</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3 class="text-info">${dashboard.yearly_progress.books_read_this_year}</h3>
+                                        <p class="card-text">Books This Year</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Active Checkouts -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-bookmark me-2"></i>Active Checkouts</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        ${dashboard.active_checkouts.length === 0 ? 
+                                            '<p class="text-muted">No active checkouts.</p>' :
+                                            dashboard.active_checkouts.map(checkout => `
+                                                <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+                                                    <div>
+                                                        <strong>${checkout.title}</strong>
+                                                        <br><small class="text-muted">Due: ${Utils.formatDate(checkout.due_date)}</small>
+                                                    </div>
+                                                    <span class="badge ${checkout.is_overdue ? 'bg-danger' : checkout.days_until_due <= 2 ? 'bg-warning' : 'bg-success'}">
+                                                        ${checkout.is_overdue ? 'Overdue' : `${checkout.days_until_due} days left`}
+                                                    </span>
+                                                </div>
+                                            `).join('')
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-star me-2"></i>Recent Reviews</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        ${dashboard.recent_reviews.length === 0 ? 
+                                            '<p class="text-muted">No reviews yet.</p>' :
+                                            dashboard.recent_reviews.map(review => `
+                                                <div class="mb-2 p-2 border rounded">
+                                                    <strong>${review.title}</strong>
+                                                    <div class="rating">
+                                                        ${Utils.generateStarRating(review.rating)}
+                                                    </div>
+                                                    <small class="text-muted">${Utils.formatDate(review.review_date)}</small>
+                                                </div>
+                                            `).join('')
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } catch (error) {
+                    document.getElementById('dashboardContainer').innerHTML = 
+                        '<div class="alert alert-danger">Failed to load dashboard.</div>';
+                }
+            }
+        };
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check authentication status
+            Auth.checkAuth();
+
+            // Navigation event listeners
+            document.getElementById('navBrand').addEventListener('click', (e) => {
+                e.preventDefault();
+                UI.showHomePage();
+            });
+
+            document.getElementById('navBooks').addEventListener('click', (e) => {
+                e.preventDefault();
+                UI.showBooksPage();
+            });
+
+            document.getElementById('navDashboard')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                UI.showDashboard();
+            });
+
+            document.getElementById('navLogout')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                Auth.logout();
+            });
+
+            // Login form
+            document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const username = document.getElementById('loginUsername').value;
+                const password = document.getElementById('loginPassword').value;
+                await Auth.login(username, password);
+            });
+
+            // Register form
+            document.getElementById('registerForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const userData = {
+                    username: document.getElementById('registerUsername').value,
+                    email: document.getElementById('registerEmail').value,
+                    password: document.getElementById('registerPassword').value,
+                    firstName: document.getElementById('registerFirstName').value,
+                    lastName: document.getElementById('registerLastName').value,
+                    phone: document.getElementById('registerPhone').value
+                };
+                await Auth.register(userData);
+            });
+
+            // Explore button
+            document.getElementById('exploreButton')?.addEventListener('click', () => {
+                UI.showBooksPage();
+            });
+
+            // Search on Enter
+            document.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && e.target.id === 'bookSearch') {
+                    UI.searchBooks();
+                }
+            });
+
+            // Filter changes
+            document.addEventListener('change', (e) => {
+                if (e.target.id === 'genreFilter' || e.target.id === 'sortBy') {
+                    UI.searchBooks();
+                }
+            });
+
+            // Show home page initially
+            UI.showHomePage();
+        });
+
+        // Additional UI functions
+        UI.borrowBook = async (bookId) => {
+            if (!App.user) {
+                Utils.showAlert('Please log in to borrow books.', 'warning');
+                return;
+            }
+
+            try {
+                await Utils.makeRequest('/checkouts/borrow', {
+                    method: 'POST',
+                    body: JSON.stringify({ book_id: bookId })
+                });
+                
+                Utils.showAlert('Book borrowed successfully!', 'success');
+                // Refresh book details to update availability
+                UI.showBookDetails(bookId);
+            } catch (error) {
+                Utils.showAlert(error.message, 'danger');
+            }
+        };
+    </script>
+</body>
+</html>
