@@ -220,6 +220,53 @@
             color: var(--secondary-color);
         }
         
+        /* Rating Stars Styles */
+        .rating-input .stars {
+            display: inline-block;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .rating-input .stars i {
+            color: #ddd;
+            transition: color 0.2s ease;
+            margin-right: 0.2rem;
+        }
+        
+        .rating-input .stars i:hover,
+        .rating-input .stars i.active {
+            color: #ffc107;
+        }
+        
+        .rating-input .stars i.fas {
+            color: #ffc107;
+        }
+        
+        /* Checkout Status Styles */
+        .checkout-status {
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .checkout-status.on-time {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .checkout-status.late {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .checkout-status.warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
         @media (max-width: 768px) {
             .hero-section h1 {
                 font-size: 2rem;
@@ -294,6 +341,11 @@
             </div>
         </div>
     </nav>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1050; max-width: 400px;">
+        <!-- Notifications will be dynamically added here -->
+    </div>
 
     <!-- Main Content -->
     <main id="mainContent">
@@ -494,6 +546,136 @@
         </div>
     </footer>
 
+    <!-- Borrow Book Modal -->
+    <div class="modal fade" id="borrowModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-bookmark me-2"></i>Borrow Book
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="borrowForm">
+                        <input type="hidden" id="borrowBookId">
+                        <div class="mb-3">
+                            <label class="form-label">Book Title</label>
+                            <input type="text" class="form-control" id="borrowBookTitle" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="loanPeriod" class="form-label">Loan Period</label>
+                            <select class="form-select" id="loanPeriod" required>
+                                <option value="7">7 days</option>
+                                <option value="14" selected>14 days (Recommended)</option>
+                                <option value="21">21 days</option>
+                                <option value="30">30 days</option>
+                            </select>
+                            <div class="form-text">Choose how long you want to borrow this book.</div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Important:</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li>You can borrow up to 5 books at a time</li>
+                                    <li>Late returns may incur fees</li>
+                                    <li>You'll receive email reminders before the due date</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div id="borrowError" class="alert alert-danger d-none"></div>
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fas fa-bookmark me-2"></i>Confirm Borrow
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Return Book Modal -->
+    <div class="modal fade" id="returnModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-undo me-2"></i>Return Book
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="returnForm">
+                        <input type="hidden" id="returnBookId">
+                        <div class="mb-3">
+                            <label class="form-label">Book Title</label>
+                            <input type="text" class="form-control" id="returnBookTitle" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Due Date</label>
+                            <input type="text" class="form-control" id="returnDueDate" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <div id="returnStatus" class="alert">
+                                <!-- Status will be populated by JavaScript -->
+                            </div>
+                        </div>
+                        <div id="returnError" class="alert alert-danger d-none"></div>
+                        <button type="submit" class="btn btn-warning w-100">
+                            <i class="fas fa-undo me-2"></i>Confirm Return
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Review Book Modal -->
+    <div class="modal fade" id="reviewModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-star me-2"></i>Review Book
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="reviewForm">
+                        <input type="hidden" id="reviewBookId">
+                        <div class="mb-3">
+                            <label class="form-label">Book Title</label>
+                            <input type="text" class="form-control" id="reviewBookTitle" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reviewRating" class="form-label">Rating</label>
+                            <div class="rating-input">
+                                <div class="stars">
+                                    <i class="far fa-star" data-rating="1"></i>
+                                    <i class="far fa-star" data-rating="2"></i>
+                                    <i class="far fa-star" data-rating="3"></i>
+                                    <i class="far fa-star" data-rating="4"></i>
+                                    <i class="far fa-star" data-rating="5"></i>
+                                </div>
+                                <input type="hidden" id="reviewRating" required>
+                                <div class="form-text">Click on the stars to rate this book.</div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reviewComment" class="form-label">Comment (Optional)</label>
+                            <textarea class="form-control" id="reviewComment" rows="4" maxlength="1000" placeholder="Share your thoughts about this book..."></textarea>
+                            <div class="form-text">Maximum 1000 characters</div>
+                        </div>
+                        <div id="reviewError" class="alert alert-danger d-none"></div>
+                        <button type="submit" class="btn btn-info w-100">
+                            <i class="fas fa-star me-2"></i>Submit Review
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
@@ -582,6 +764,7 @@
                     localStorage.setItem('library_token', data.token);
                     
                     UI.updateAuthState();
+                    await UI.loadUserData();
                     UI.showHomePage();
                     
                     // Close login modal
@@ -607,6 +790,7 @@
                     localStorage.setItem('library_token', data.token);
                     
                     UI.updateAuthState();
+                    await UI.loadUserData();
                     UI.showHomePage();
                     
                     // Close register modal
@@ -635,6 +819,7 @@
                         const data = await Utils.makeRequest('/auth/profile');
                         App.user = data.user;
                         UI.updateAuthState();
+                        await UI.loadUserData();
                     } catch (error) {
                         Auth.logout();
                     }
@@ -786,10 +971,10 @@
                                                 <small class="text-muted">(${book.total_reviews})</small>
                                             </div>
                                             <span class="availability-badge ${book.is_available ? 'bg-success' : 'bg-danger'} text-white">
-                                                ${book.is_available ? 'Available' : 'Unavailable'}
+                                                ${book.is_available ? `Available (${book.available_copies || 0}/${book.total_copies || 0})` : 'Unavailable'}
                                             </span>
                                         </div>
-                                        <button class="btn btn-primary btn-sm mt-2 w-100" onclick="UI.showBookDetails(${book.book_id})">
+                                        <button class="btn btn-primary btn-sm mt-2 w-100 view-details-btn" data-book-id="${book.book_id}">
                                             View Details
                                         </button>
                                     </div>
@@ -806,29 +991,161 @@
             showBooksPage: async () => {
                 document.getElementById('mainContent').innerHTML = `
                     <div class="container my-4">
-                        <h2>Explore Books</h2>
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2>Explore Books</h2>
+                            <button class="btn btn-outline-primary" id="advancedSearchToggle">
+                                <i class="fas fa-filter me-2"></i>Advanced Search
+                            </button>
+                        </div>
                         
-                        <!-- Search and Filters -->
-                        <div class="row mb-4">
+                        <!-- Basic Search and Filters -->
+                        <div class="row mb-4" id="basicSearch">
                             <div class="col-md-6">
                                 <div class="input-group">
-                                    <input type="text" class="form-control" id="bookSearch" placeholder="Search books...">
-                                    <button class="btn btn-outline-secondary" type="button" onclick="UI.searchBooks()">
+                                    <input type="text" class="form-control" id="bookSearch" placeholder="Search books by title, author, or description...">
+                                    <button class="btn btn-outline-secondary" type="button" id="searchButton" title="Search books">
                                         <i class="fas fa-search"></i>
                                     </button>
                                 </div>
+                                <small class="form-text text-muted">💡 Tip: Text search will override genre filter for better results</small>
                             </div>
                             <div class="col-md-3">
+                                <label for="genreFilter" class="form-label small">Filter by Genre</label>
                                 <select class="form-select" id="genreFilter">
                                     <option value="">All Genres</option>
                                 </select>
                             </div>
                             <div class="col-md-3">
+                                <label for="sortBy" class="form-label small">Sort Results</label>
                                 <select class="form-select" id="sortBy">
                                     <option value="title">Sort by Title</option>
                                     <option value="average_rating">Sort by Rating</option>
                                     <option value="total_borrowed">Sort by Popularity</option>
+                                    <option value="publication_date">Sort by Publication Date</option>
                                 </select>
+                            </div>
+                        </div>
+
+                        <!-- Advanced Search Form (Hidden by default) -->
+                        <div id="advancedSearchForm" class="card mb-4" style="display: none;">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-search me-2"></i>Advanced Book Search
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="advancedSearch">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="advTitle" class="form-label">Title</label>
+                                            <input type="text" class="form-control" id="advTitle" placeholder="Search by book title">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="advAuthor" class="form-label">Author Name</label>
+                                            <input type="text" class="form-control" id="advAuthor" placeholder="Search by author name">
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <label for="advPublisher" class="form-label">Publisher</label>
+                                            <input type="text" class="form-control" id="advPublisher" placeholder="Search by publisher">
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="advGenre" class="form-label">Genre</label>
+                                            <select class="form-select" id="advGenre">
+                                                <option value="">All Genres</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="advISBN" class="form-label">ISBN</label>
+                                            <input type="text" class="form-control" id="advISBN" placeholder="Search by ISBN">
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-3 mb-3">
+                                            <label for="advYearFrom" class="form-label">Publication Year From</label>
+                                            <input type="number" class="form-control" id="advYearFrom" placeholder="e.g. 2000" min="1800" max="${new Date().getFullYear()}">
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <label for="advYearTo" class="form-label">Publication Year To</label>
+                                            <input type="number" class="form-control" id="advYearTo" placeholder="e.g. 2024" min="1800" max="${new Date().getFullYear()}">
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <label for="advMinRating" class="form-label">Minimum Rating</label>
+                                            <select class="form-select" id="advMinRating">
+                                                <option value="">Any Rating</option>
+                                                <option value="1">1+ Stars</option>
+                                                <option value="2">2+ Stars</option>
+                                                <option value="3">3+ Stars</option>
+                                                <option value="4">4+ Stars</option>
+                                                <option value="5">5 Stars</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <label for="advMaxRating" class="form-label">Maximum Rating</label>
+                                            <select class="form-select" id="advMaxRating">
+                                                <option value="">Any Rating</option>
+                                                <option value="1">Up to 1 Star</option>
+                                                <option value="2">Up to 2 Stars</option>
+                                                <option value="3">Up to 3 Stars</option>
+                                                <option value="4">Up to 4 Stars</option>
+                                                <option value="5">Up to 5 Stars</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="advAvailableOnly">
+                                                <label class="form-check-label" for="advAvailableOnly">
+                                                    Show only available books
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="advEbookOnly">
+                                                <label class="form-check-label" for="advEbookOnly">
+                                                    Show only eBooks
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="advSortBy" class="form-label">Sort By</label>
+                                            <select class="form-select" id="advSortBy">
+                                                <option value="title">Title</option>
+                                                <option value="author">Author</option>
+                                                <option value="average_rating">Rating</option>
+                                                <option value="total_borrowed">Popularity</option>
+                                                <option value="publication_date">Publication Date</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <button type="button" class="btn btn-primary me-2" id="performAdvancedSearch">
+                                                <i class="fas fa-search me-2"></i>Search
+                                            </button>
+                                            <button type="button" class="btn btn-secondary me-2" id="clearAdvancedSearch">
+                                                <i class="fas fa-eraser me-2"></i>Clear
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary" id="closeAdvancedSearch">
+                                                <i class="fas fa-times me-2"></i>Close
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Search Results Info -->
+                        <div id="searchResultsInfo" class="mb-3" style="display: none;">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <span id="searchResultsText"></span>
+                                <button type="button" class="btn btn-sm btn-outline-info ms-2" id="clearAllFilters">
+                                    Clear Filters
+                                </button>
                             </div>
                         </div>
 
@@ -847,6 +1164,7 @@
                 `;
 
                 UI.loadBooks();
+                UI.loadGenresForAdvancedSearch();
             },
 
             loadBooks: async (page = 1, search = '', genre = '', sortBy = 'title') => {
@@ -883,10 +1201,10 @@
                                                 ${Utils.generateStarRating(book.average_rating)}
                                             </div>
                                             <span class="availability-badge ${book.is_available ? 'bg-success' : 'bg-danger'} text-white">
-                                                ${book.is_available ? 'Available' : 'Unavailable'}
+                                                ${book.is_available ? `Available (${book.available_copies || 0}/${book.total_copies || 0})` : 'Unavailable'}
                                             </span>
                                         </div>
-                                        <button class="btn btn-primary btn-sm w-100" onclick="UI.showBookDetails(${book.book_id})">
+                                        <button class="btn btn-primary btn-sm w-100 view-details-btn" data-book-id="${book.book_id}">
                                             View Details
                                         </button>
                                     </div>
@@ -967,7 +1285,44 @@
             },
 
             searchBooks: () => {
-                const search = document.getElementById('bookSearch').value;
+                const search = document.getElementById('bookSearch').value.trim();
+                const genre = document.getElementById('genreFilter').value;
+                const sortBy = document.getElementById('sortBy').value;
+                
+                // If user is typing in search box, prioritize the search over genre filter
+                // Clear genre filter when user is actively searching with text
+                if (search && genre) {
+                    // Show warning and clear genre filter to get better results
+                    Utils.showAlert('Search term found! Genre filter cleared to show all matching books.', 'info');
+                    document.getElementById('genreFilter').value = '';
+                    UI.loadBooks(1, search, '', sortBy);
+                } else {
+                    UI.loadBooks(1, search, genre, sortBy);
+                }
+            },
+
+            handleGenreChange: () => {
+                const search = document.getElementById('bookSearch').value.trim();
+                const genre = document.getElementById('genreFilter').value;
+                const sortBy = document.getElementById('sortBy').value;
+                
+                // If there's text in search box, warn user about combining filters
+                if (search && genre) {
+                    const proceed = confirm(`You have "${search}" in the search box and selected "${genre}" genre. This might limit your results. Do you want to:\n\n• Click OK to search with both filters\n• Click Cancel to clear the text search and filter by genre only`);
+                    
+                    if (!proceed) {
+                        document.getElementById('bookSearch').value = '';
+                        UI.loadBooks(1, '', genre, sortBy);
+                    } else {
+                        UI.loadBooks(1, search, genre, sortBy);
+                    }
+                } else {
+                    UI.loadBooks(1, search, genre, sortBy);
+                }
+            },
+
+            handleSortChange: () => {
+                const search = document.getElementById('bookSearch').value.trim();
                 const genre = document.getElementById('genreFilter').value;
                 const sortBy = document.getElementById('sortBy').value;
                 UI.loadBooks(1, search, genre, sortBy);
@@ -978,7 +1333,7 @@
                     <div class="container my-4">
                         <div class="row">
                             <div class="col-12">
-                                <button class="btn btn-outline-secondary mb-3" onclick="UI.showBooksPage()">
+                                <button class="btn btn-outline-secondary mb-3" id="backToBooksBtn">
                                     <i class="fas fa-arrow-left me-2"></i>Back to Books
                                 </button>
                             </div>
@@ -994,6 +1349,11 @@
                 `;
 
                 try {
+                    // Load user data if user is logged in
+                    if (App.user) {
+                        await UI.loadUserData();
+                    }
+                    
                     const data = await Utils.makeRequest(`/books/${bookId}`);
                     const book = data.book;
                     
@@ -1003,11 +1363,33 @@
                                 <img src="${book.cover_image_url || 'https://via.placeholder.com/300x400?text=No+Cover'}" 
                                      class="img-fluid rounded book-cover" alt="${book.title}">
                                 <div class="mt-3">
-                                    ${App.user && book.is_available ? `
-                                        <button class="btn btn-success w-100 mb-2" onclick="UI.borrowBook(${book.book_id})">
-                                            <i class="fas fa-bookmark me-2"></i>Borrow Book
+
+                                    <!-- Debug: User: ${App.user ? 'Logged in' : 'Not logged in'}, Available: ${book.is_available}, Borrowed: ${UI.hasUserBorrowedBook(book.book_id)}, Reviewed: ${UI.hasUserReviewedBook(book.book_id)} -->
+                                    ${App.user ? `
+                                        ${book.is_available ? `
+                                            <button class="btn btn-success w-100 mb-2 borrow-btn" data-book-id="${book.book_id}" data-book-title="${book.title}">
+                                                <i class="fas fa-bookmark me-2"></i>Borrow Book
+                                            </button>
+                                        ` : `
+                                            <button class="btn btn-secondary w-100 mb-2" disabled>
+                                                <i class="fas fa-times me-2"></i>Not Available
+                                            </button>
+                                        `}
+                                        ${UI.hasUserBorrowedBook(book.book_id) ? `
+                                            <button class="btn btn-warning w-100 mb-2 return-btn" data-book-id="${book.book_id}" data-book-title="${book.title}">
+                                                <i class="fas fa-undo me-2"></i>Return Book
+                                            </button>
+                                        ` : ''}
+                                        ${UI.hasUserBorrowedBook(book.book_id) && !UI.hasUserReviewedBook(book.book_id) ? `
+                                            <button class="btn btn-info w-100 mb-2 review-btn" data-book-id="${book.book_id}" data-book-title="${book.title}">
+                                                <i class="fas fa-star me-2"></i>Review Book
+                                            </button>
+                                        ` : ''}
+                                    ` : `
+                                        <button class="btn btn-outline-primary w-100 mb-2" data-bs-toggle="modal" data-bs-target="#loginModal">
+                                            <i class="fas fa-sign-in-alt me-2"></i>Login to Borrow
                                         </button>
-                                    ` : ''}
+                                    `}
                                     <div class="availability-badge ${book.is_available ? 'bg-success' : 'bg-danger'} text-white w-100 text-center py-2 rounded">
                                         ${book.is_available ? `Available (${book.available_copies}/${book.total_copies})` : 'Not Available'}
                                     </div>
@@ -1210,27 +1592,64 @@
                                 </div>
                             </div>
 
-                            <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h5><i class="fas fa-star me-2"></i>Recent Reviews</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        ${dashboard.recent_reviews.length === 0 ? 
-                                            '<p class="text-muted">No reviews yet.</p>' :
-                                            dashboard.recent_reviews.map(review => `
-                                                <div class="mb-2 p-2 border rounded">
-                                                    <strong>${review.title}</strong>
-                                                    <div class="rating">
-                                                        ${Utils.generateStarRating(review.rating)}
-                                                    </div>
-                                                    <small class="text-muted">${Utils.formatDate(review.review_date)}</small>
-                                                </div>
-                                            `).join('')
-                                        }
-                                    </div>
-                                </div>
-                            </div>
+                                                         <div class="col-md-6">
+                                 <div class="card">
+                                     <div class="card-header">
+                                         <h5><i class="fas fa-star me-2"></i>Recent Reviews</h5>
+                                     </div>
+                                     <div class="card-body">
+                                         ${dashboard.recent_reviews.length === 0 ? 
+                                             '<p class="text-muted">No reviews yet.</p>' :
+                                             dashboard.recent_reviews.map(review => `
+                                                 <div class="mb-2 p-2 border rounded">
+                                                     <strong>${review.title}</strong>
+                                                     <div class="rating">
+                                                         ${Utils.generateStarRating(review.rating)}
+                                                     </div>
+                                                     <small class="text-muted">${Utils.formatDate(review.review_date)}</small>
+                                                 </div>
+                                             `).join('')
+                                         }
+                                     </div>
+                                 </div>
+                             </div>
+                         </div>
+
+                         <!-- My Checkouts Section -->
+                         <div class="row mt-4">
+                             <div class="col-12">
+                                 <div class="card">
+                                     <div class="card-header d-flex justify-content-between align-items-center">
+                                         <h5><i class="fas fa-bookmark me-2"></i>My Checkouts</h5>
+                                         <button class="btn btn-outline-primary btn-sm" onclick="UI.showAllCheckouts()">
+                                             <i class="fas fa-list me-1"></i>View All
+                                         </button>
+                                     </div>
+                                     <div class="card-body">
+                                         ${dashboard.active_checkouts.length === 0 ? 
+                                             '<p class="text-muted">No active checkouts.</p>' :
+                                             dashboard.active_checkouts.map(checkout => `
+                                                 <div class="d-flex justify-content-between align-items-center mb-3 p-3 border rounded">
+                                                     <div class="flex-grow-1">
+                                                         <h6 class="mb-1">${checkout.title}</h6>
+                                                         <small class="text-muted">Due: ${Utils.formatDate(checkout.due_date)}</small>
+                                                     </div>
+                                                     <div class="text-end">
+                                                         <span class="badge ${checkout.is_overdue ? 'bg-danger' : checkout.days_until_due <= 2 ? 'bg-warning' : 'bg-success'} mb-2">
+                                                             ${checkout.is_overdue ? 'Overdue' : `${checkout.days_until_due} days left`}
+                                                         </span>
+                                                         <br>
+                                                         <button class="btn btn-warning btn-sm" onclick="UI.showReturnModal(${checkout.book_id}, '${checkout.title}')">
+                                                             <i class="fas fa-undo me-1"></i>Return
+                                                         </button>
+                                                     </div>
+                                                 </div>
+                                             `).join('')
+                                         }
+                                     </div>
+                                 </div>
+                             </div>
+                         </div>
                         </div>
                     `;
                 } catch (error) {
@@ -1293,17 +1712,51 @@
                 UI.showBooksPage();
             });
 
-            // Search on Enter
+            // Search functionality and book action event listeners
+            document.addEventListener('click', (e) => {
+                if (e.target.id === 'searchButton' || e.target.closest('#searchButton')) {
+                    UI.searchBooks();
+                } else if (e.target.id === 'advancedSearchToggle' || e.target.closest('#advancedSearchToggle')) {
+                    UI.toggleAdvancedSearch();
+                } else if (e.target.id === 'performAdvancedSearch' || e.target.closest('#performAdvancedSearch')) {
+                    UI.performAdvancedSearch();
+                } else if (e.target.id === 'clearAdvancedSearch' || e.target.closest('#clearAdvancedSearch')) {
+                    UI.clearAdvancedSearch();
+                } else if (e.target.id === 'closeAdvancedSearch' || e.target.closest('#closeAdvancedSearch')) {
+                    UI.toggleAdvancedSearch();
+                } else if (e.target.id === 'clearAllFilters' || e.target.closest('#clearAllFilters')) {
+                    UI.clearAllFilters();
+                } else if (e.target.classList.contains('borrow-btn')) {
+                    const bookId = e.target.dataset.bookId;
+                    const bookTitle = e.target.dataset.bookTitle;
+                    UI.showBorrowModal(bookId, bookTitle);
+                } else if (e.target.classList.contains('return-btn')) {
+                    const bookId = e.target.dataset.bookId;
+                    const bookTitle = e.target.dataset.bookTitle;
+                    UI.showReturnModal(bookId, bookTitle);
+                } else if (e.target.classList.contains('review-btn')) {
+                    const bookId = e.target.dataset.bookId;
+                    const bookTitle = e.target.dataset.bookTitle;
+                    UI.showReviewModal(bookId, bookTitle);
+                } else if (e.target.id === 'backToBooksBtn') {
+                    UI.showBooksPage();
+                } else if (e.target.classList.contains('view-details-btn')) {
+                    const bookId = e.target.dataset.bookId;
+                    UI.showBookDetails(bookId);
+                }
+            });
+
             document.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter' && e.target.id === 'bookSearch') {
                     UI.searchBooks();
                 }
             });
 
-            // Filter changes
             document.addEventListener('change', (e) => {
-                if (e.target.id === 'genreFilter' || e.target.id === 'sortBy') {
-                    UI.searchBooks();
+                if (e.target.id === 'genreFilter') {
+                    UI.handleGenreChange();
+                } else if (e.target.id === 'sortBy') {
+                    UI.handleSortChange();
                 }
             });
 
@@ -1329,6 +1782,710 @@
                 UI.showBookDetails(bookId);
             } catch (error) {
                 Utils.showAlert(error.message, 'danger');
+            }
+        };
+
+        // Advanced Search Functions
+        UI.toggleAdvancedSearch = () => {
+            const form = document.getElementById('advancedSearchForm');
+            const isVisible = form.style.display !== 'none';
+            form.style.display = isVisible ? 'none' : 'block';
+            
+            // Update button text
+            const button = document.getElementById('advancedSearchToggle');
+            if (button) {
+                const icon = isVisible ? 'fas fa-filter' : 'fas fa-times';
+                const text = isVisible ? 'Advanced Search' : 'Close Advanced';
+                button.innerHTML = `<i class="${icon} me-2"></i>${text}`;
+            }
+        };
+
+        UI.loadGenresForAdvancedSearch = async () => {
+            try {
+                const data = await Utils.makeRequest('/books?limit=1');
+                if (data.filters && data.filters.available_genres) {
+                    const advGenreSelect = document.getElementById('advGenre');
+                    const genreSelect = document.getElementById('genreFilter');
+                    
+                    data.filters.available_genres.forEach(genre => {
+                        // Add to basic genre filter if not already there
+                        if (genreSelect && ![...genreSelect.options].some(option => option.value === genre)) {
+                            const option = document.createElement('option');
+                            option.value = genre;
+                            option.textContent = genre;
+                            genreSelect.appendChild(option);
+                        }
+                        
+                        // Add to advanced genre filter
+                        if (advGenreSelect) {
+                            const option = document.createElement('option');
+                            option.value = genre;
+                            option.textContent = genre;
+                            advGenreSelect.appendChild(option);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading genres:', error);
+            }
+        };
+
+        UI.performAdvancedSearch = async () => {
+            const searchParams = new URLSearchParams();
+            
+            // Get all advanced search form values
+            const title = document.getElementById('advTitle').value.trim();
+            const author = document.getElementById('advAuthor').value.trim();
+            const publisher = document.getElementById('advPublisher').value.trim();
+            const genre = document.getElementById('advGenre').value;
+            const isbn = document.getElementById('advISBN').value.trim();
+            const yearFrom = document.getElementById('advYearFrom').value;
+            const yearTo = document.getElementById('advYearTo').value;
+            const minRating = document.getElementById('advMinRating').value;
+            const maxRating = document.getElementById('advMaxRating').value;
+            const availableOnly = document.getElementById('advAvailableOnly').checked;
+            const ebookOnly = document.getElementById('advEbookOnly').checked;
+            const sortBy = document.getElementById('advSortBy').value;
+            
+            // Build search parameters
+            if (title) searchParams.append('title', title);
+            if (author) searchParams.append('author_name', author);
+            if (publisher) searchParams.append('publisher', publisher);
+            if (genre) searchParams.append('genre', genre);
+            if (isbn) searchParams.append('isbn', isbn);
+            if (yearFrom) searchParams.append('publication_year_from', yearFrom);
+            if (yearTo) searchParams.append('publication_year_to', yearTo);
+            if (minRating) searchParams.append('min_rating', minRating);
+            if (maxRating) searchParams.append('max_rating', maxRating);
+            if (availableOnly) searchParams.append('available_only', 'true');
+            if (ebookOnly) searchParams.append('is_ebook', 'true');
+            
+            searchParams.append('page', '1');
+            searchParams.append('limit', '12');
+            
+            try {
+                const container = document.getElementById('booksContainer');
+                container.innerHTML = `
+                    <div class="col-12 text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Searching...</span>
+                        </div>
+                        <p class="mt-2">Performing advanced search...</p>
+                    </div>
+                `;
+                
+                const data = await Utils.makeRequest(`/books/search/advanced?${searchParams}`);
+                
+                UI.displaySearchResults(data, true);
+                UI.updateSearchResultsInfo(data, searchParams);
+                
+            } catch (error) {
+                console.error('Advanced search error:', error);
+                Utils.showAlert('Advanced search failed. Please try again.', 'danger');
+                document.getElementById('booksContainer').innerHTML = 
+                    '<div class="col-12 text-center"><p class="text-danger">Search failed. Please try again.</p></div>';
+            }
+        };
+
+        UI.displaySearchResults = (data, isAdvancedSearch = false) => {
+            const container = document.getElementById('booksContainer');
+            
+            if (!data.books || data.books.length === 0) {
+                container.innerHTML = `
+                    <div class="col-12 text-center">
+                        <div class="card">
+                            <div class="card-body">
+                                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                                <h5>No books found</h5>
+                                <p class="text-muted">Try adjusting your search criteria or clear filters to see all books.</p>
+                                <button class="btn btn-outline-primary" onclick="UI.clearAllFilters()">
+                                    Clear All Filters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = data.books.map(book => `
+                <div class="col-md-3 mb-4">
+                    <div class="card h-100">
+                        <img src="${book.cover_image_url || 'https://via.placeholder.com/200x300?text=No+Cover'}" 
+                             class="card-img-top book-cover" alt="${book.title}" style="height: 250px;">
+                        <div class="card-body d-flex flex-column">
+                            <h6 class="card-title" title="${book.title}">${book.title}</h6>
+                            <p class="card-text text-muted small">by ${book.authors?.join(', ') || 'Unknown authors'}</p>
+                            ${book.publisher ? `<p class="card-text text-muted small"><strong>Publisher:</strong> ${book.publisher}</p>` : ''}
+                            ${book.publication_date ? `<p class="card-text text-muted small"><strong>Published:</strong> ${Utils.formatDate(book.publication_date)}</p>` : ''}
+                            <div class="mt-auto">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div class="rating small">
+                                        ${Utils.generateStarRating(book.average_rating)}
+                                        <small class="text-muted">(${book.total_reviews})</small>
+                                    </div>
+                                    <span class="availability-badge ${book.is_available ? 'bg-success' : 'bg-danger'} text-white">
+                                        ${book.is_available ? `${book.available_copies}/${book.total_copies}` : 'Unavailable'}
+                                    </span>
+                                </div>
+                                ${book.is_ebook ? '<span class="badge bg-info mb-2">eBook</span>' : ''}
+                                <button class="btn btn-primary btn-sm w-100 view-details-btn" data-book-id="${book.book_id}">
+                                    View Details
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Update pagination for advanced search
+            if (isAdvancedSearch && data.pagination) {
+                UI.updatePagination('booksPagination', data.pagination, (newPage) => {
+                    // Re-run advanced search with new page
+                    const currentParams = new URLSearchParams(window.location.search);
+                    currentParams.set('page', newPage);
+                    UI.performAdvancedSearchWithParams(currentParams);
+                });
+            }
+        };
+
+        UI.updateSearchResultsInfo = (data, searchParams) => {
+            const infoDiv = document.getElementById('searchResultsInfo');
+            const textSpan = document.getElementById('searchResultsText');
+            
+            if (searchParams.toString()) {
+                const totalBooks = data.pagination?.total_books || data.books?.length || 0;
+                const activeFilters = [];
+                
+                for (const [key, value] of searchParams.entries()) {
+                    if (key !== 'page' && key !== 'limit' && value) {
+                        const friendlyName = {
+                            'title': 'Title',
+                            'author_name': 'Author',
+                            'publisher': 'Publisher',
+                            'genre': 'Genre',
+                            'isbn': 'ISBN',
+                            'publication_year_from': 'Year From',
+                            'publication_year_to': 'Year To',
+                            'min_rating': 'Min Rating',
+                            'max_rating': 'Max Rating',
+                            'available_only': 'Available Only',
+                            'is_ebook': 'eBooks Only'
+                        }[key] || key;
+                        
+                        activeFilters.push(`${friendlyName}: ${value === 'true' ? 'Yes' : value}`);
+                    }
+                }
+                
+                textSpan.textContent = `Found ${totalBooks} book${totalBooks !== 1 ? 's' : ''} matching your search criteria. Active filters: ${activeFilters.join(', ')}`;
+                infoDiv.style.display = 'block';
+            } else {
+                infoDiv.style.display = 'none';
+            }
+        };
+
+        UI.clearAdvancedSearch = () => {
+            document.getElementById('advTitle').value = '';
+            document.getElementById('advAuthor').value = '';
+            document.getElementById('advPublisher').value = '';
+            document.getElementById('advGenre').value = '';
+            document.getElementById('advISBN').value = '';
+            document.getElementById('advYearFrom').value = '';
+            document.getElementById('advYearTo').value = '';
+            document.getElementById('advMinRating').value = '';
+            document.getElementById('advMaxRating').value = '';
+            document.getElementById('advAvailableOnly').checked = false;
+            document.getElementById('advEbookOnly').checked = false;
+            document.getElementById('advSortBy').value = 'title';
+        };
+
+        UI.clearAllFilters = () => {
+            // Clear basic search
+            document.getElementById('bookSearch').value = '';
+            document.getElementById('genreFilter').value = '';
+            document.getElementById('sortBy').value = 'title';
+            
+            // Clear advanced search
+            UI.clearAdvancedSearch();
+            
+            // Hide search results info
+            document.getElementById('searchResultsInfo').style.display = 'none';
+            
+            // Load all books
+            UI.loadBooks();
+        };
+
+        UI.performAdvancedSearchWithParams = async (searchParams) => {
+            try {
+                const data = await Utils.makeRequest(`/books/search/advanced?${searchParams}`);
+                UI.displaySearchResults(data, true);
+                UI.updateSearchResultsInfo(data, searchParams);
+            } catch (error) {
+                console.error('Advanced search error:', error);
+                Utils.showAlert('Search failed. Please try again.', 'danger');
+            }
+        };
+
+        // User Checkout and Review State Management
+        App.userCheckouts = [];
+        App.userReviews = [];
+
+        // Load user's checkout and review data
+        UI.loadUserData = async () => {
+            if (!App.user) return;
+            
+            try {
+                console.log('Loading user data for user:', App.user.user_id);
+                
+                // Load user's checkouts
+                const checkoutData = await Utils.makeRequest('/checkouts/user');
+                App.userCheckouts = checkoutData.checkouts || [];
+                console.log('Loaded checkouts:', App.userCheckouts);
+                
+                // Load user's reviews
+                const reviewData = await Utils.makeRequest('/reviews/user');
+                App.userReviews = reviewData.reviews || [];
+                console.log('Loaded reviews:', App.userReviews);
+            } catch (error) {
+                console.error('Error loading user data:', error);
+            }
+        };
+
+        // Check if user has borrowed a specific book
+        UI.hasUserBorrowedBook = (bookId) => {
+            const hasBorrowed = App.userCheckouts.some(checkout => 
+                checkout.book_id === bookId && !checkout.is_returned
+            );
+            console.log(`Checking if user borrowed book ${bookId}:`, hasBorrowed, 'Checkouts:', App.userCheckouts);
+            return hasBorrowed;
+        };
+
+        // Check if user has reviewed a specific book
+        UI.hasUserReviewedBook = (bookId) => {
+            return App.userReviews.some(review => review.book_id === bookId);
+        };
+
+        // Get user's checkout for a specific book
+        UI.getUserCheckout = (bookId) => {
+            return App.userCheckouts.find(checkout => 
+                checkout.book_id === bookId && !checkout.is_returned
+            );
+        };
+
+        // Borrow Book Functions
+        UI.showBorrowModal = (bookId, bookTitle) => {
+            document.getElementById('borrowBookId').value = bookId;
+            document.getElementById('borrowBookTitle').value = bookTitle;
+            document.getElementById('borrowError').classList.add('d-none');
+            
+            const modal = new bootstrap.Modal(document.getElementById('borrowModal'));
+            modal.show();
+        };
+
+        UI.borrowBook = async (bookId, loanPeriod) => {
+            try {
+                const response = await Utils.makeRequest('/checkouts/borrow', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        book_id: bookId,
+                        loan_period_days: loanPeriod
+                    })
+                });
+
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('borrowModal'));
+                modal.hide();
+
+                // Show success message
+                Utils.showAlert('Book borrowed successfully! You will receive email reminders before the due date.', 'success');
+
+                // Reload user data and refresh the page
+                await UI.loadUserData();
+                UI.showBookDetails(bookId);
+
+            } catch (error) {
+                document.getElementById('borrowError').textContent = error.message;
+                document.getElementById('borrowError').classList.remove('d-none');
+            }
+        };
+
+        // Return Book Functions
+        UI.showReturnModal = async (bookId, bookTitle) => {
+            const checkout = UI.getUserCheckout(bookId);
+            if (!checkout) {
+                Utils.showAlert('Checkout not found.', 'danger');
+                return;
+            }
+
+            document.getElementById('returnBookId').value = bookId;
+            document.getElementById('returnBookTitle').value = bookTitle;
+            document.getElementById('returnDueDate').value = new Date(checkout.due_date).toLocaleDateString();
+            
+            // Calculate and display status
+            const today = new Date();
+            const dueDate = new Date(checkout.due_date);
+            const daysDiff = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+            
+            const statusDiv = document.getElementById('returnStatus');
+            if (daysDiff < 0) {
+                statusDiv.className = 'alert alert-danger checkout-status late';
+                statusDiv.innerHTML = `
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Overdue!</strong> This book is ${Math.abs(daysDiff)} days late.
+                `;
+            } else if (daysDiff <= 2) {
+                statusDiv.className = 'alert alert-warning checkout-status warning';
+                statusDiv.innerHTML = `
+                    <i class="fas fa-clock me-2"></i>
+                    <strong>Due Soon!</strong> This book is due in ${daysDiff} day${daysDiff === 1 ? '' : 's'}.
+                `;
+            } else {
+                statusDiv.className = 'alert alert-success checkout-status on-time';
+                statusDiv.innerHTML = `
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>On Time!</strong> This book is due in ${daysDiff} days.
+                `;
+            }
+
+            document.getElementById('returnError').classList.add('d-none');
+            
+            const modal = new bootstrap.Modal(document.getElementById('returnModal'));
+            modal.show();
+        };
+
+        UI.returnBook = async (bookId) => {
+            try {
+                const response = await Utils.makeRequest('/checkouts/return', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        book_id: bookId
+                    })
+                });
+
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('returnModal'));
+                modal.hide();
+
+                // Show success message
+                const message = response.is_late ? 
+                    'Book returned successfully! Late return fee: $' + response.late_fee :
+                    'Book returned successfully! Thank you for returning on time.';
+                Utils.showAlert(message, 'success');
+
+                // Reload user data and refresh the page
+                await UI.loadUserData();
+                UI.showBookDetails(bookId);
+
+            } catch (error) {
+                document.getElementById('returnError').textContent = error.message;
+                document.getElementById('returnError').classList.remove('d-none');
+            }
+        };
+
+        // Review Book Functions
+        UI.showReviewModal = (bookId, bookTitle) => {
+            document.getElementById('reviewBookId').value = bookId;
+            document.getElementById('reviewBookTitle').value = bookTitle;
+            document.getElementById('reviewRating').value = '';
+            document.getElementById('reviewComment').value = '';
+            document.getElementById('reviewError').classList.add('d-none');
+            
+            // Reset stars
+            document.querySelectorAll('#reviewModal .stars i').forEach(star => {
+                star.className = 'far fa-star';
+            });
+            
+            const modal = new bootstrap.Modal(document.getElementById('reviewModal'));
+            modal.show();
+        };
+
+        UI.submitReview = async (bookId, rating, comment) => {
+            try {
+                const response = await Utils.makeRequest('/reviews', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        book_id: bookId,
+                        rating: rating,
+                        comment: comment
+                    })
+                });
+
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('reviewModal'));
+                modal.hide();
+
+                // Show success message
+                Utils.showAlert('Review submitted successfully! Thank you for your feedback.', 'success');
+
+                // Reload user data and refresh the page
+                await UI.loadUserData();
+                UI.showBookDetails(bookId);
+
+            } catch (error) {
+                document.getElementById('reviewError').textContent = error.message;
+                document.getElementById('reviewError').classList.remove('d-none');
+            }
+        };
+
+        // Initialize rating stars functionality
+        UI.initRatingStars = () => {
+            document.addEventListener('click', (e) => {
+                if (e.target.closest('#reviewModal .stars')) {
+                    const stars = e.target.closest('#reviewModal .stars').querySelectorAll('i');
+                    const clickedRating = parseInt(e.target.dataset.rating);
+                    
+                    stars.forEach((star, index) => {
+                        if (index < clickedRating) {
+                            star.className = 'fas fa-star';
+                        } else {
+                            star.className = 'far fa-star';
+                        }
+                    });
+                    
+                    document.getElementById('reviewRating').value = clickedRating;
+                }
+            });
+        };
+
+        // Initialize form submissions
+        UI.initForms = () => {
+            // Borrow form
+            document.getElementById('borrowForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const bookId = parseInt(document.getElementById('borrowBookId').value);
+                const loanPeriod = parseInt(document.getElementById('loanPeriod').value);
+                await UI.borrowBook(bookId, loanPeriod);
+            });
+
+            // Return form
+            document.getElementById('returnForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const bookId = parseInt(document.getElementById('returnBookId').value);
+                await UI.returnBook(bookId);
+            });
+
+            // Review form
+            document.getElementById('reviewForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const bookId = parseInt(document.getElementById('reviewBookId').value);
+                const rating = parseInt(document.getElementById('reviewRating').value);
+                const comment = document.getElementById('reviewComment').value;
+                
+                if (!rating) {
+                    document.getElementById('reviewError').textContent = 'Please select a rating.';
+                    document.getElementById('reviewError').classList.remove('d-none');
+                    return;
+                }
+                
+                await UI.submitReview(bookId, rating, comment);
+            });
+        };
+
+        // Update the existing event listeners to include new functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            // Existing event listeners...
+            
+            // Initialize new functionality
+            UI.initRatingStars();
+            UI.initForms();
+            
+            // Load user data when authenticated
+            if (App.user) {
+                UI.loadUserData();
+            }
+        });
+
+        // Update Auth.checkAuth to load user data
+        const originalCheckAuth = Auth.checkAuth;
+        Auth.checkAuth = async () => {
+            await originalCheckAuth();
+            if (App.user) {
+                await UI.loadUserData();
+                UI.checkForOverdueBooks();
+            }
+        };
+
+        // Notification System
+        UI.showNotification = (message, type = 'info', duration = 5000) => {
+            const container = document.getElementById('notificationContainer');
+            const notificationId = 'notification-' + Date.now();
+            
+            const notification = document.createElement('div');
+            notification.id = notificationId;
+            notification.className = `alert alert-${type} alert-dismissible fade show`;
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Auto-remove after duration
+            setTimeout(() => {
+                const notif = document.getElementById(notificationId);
+                if (notif) {
+                    notif.remove();
+                }
+            }, duration);
+        };
+
+        // Check for overdue books and show notifications
+        UI.checkForOverdueBooks = () => {
+            if (!App.user || !App.userCheckouts) return;
+            
+            const today = new Date();
+            const overdueBooks = App.userCheckouts.filter(checkout => {
+                if (checkout.is_returned) return false;
+                const dueDate = new Date(checkout.due_date);
+                return dueDate < today;
+            });
+            
+            const dueSoonBooks = App.userCheckouts.filter(checkout => {
+                if (checkout.is_returned) return false;
+                const dueDate = new Date(checkout.due_date);
+                const daysDiff = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+                return daysDiff >= 0 && daysDiff <= 2;
+            });
+            
+            // Show overdue notifications
+            overdueBooks.forEach(checkout => {
+                const daysLate = Math.ceil((today - new Date(checkout.due_date)) / (1000 * 60 * 60 * 24));
+                UI.showNotification(
+                    `<strong>Overdue Book!</strong> "${checkout.title}" is ${daysLate} day${daysLate === 1 ? '' : 's'} late. Please return it soon to avoid additional fees.`,
+                    'danger',
+                    10000
+                );
+            });
+            
+            // Show due soon notifications
+            dueSoonBooks.forEach(checkout => {
+                const daysLeft = Math.ceil((new Date(checkout.due_date) - today) / (1000 * 60 * 60 * 24));
+                UI.showNotification(
+                    `<strong>Book Due Soon!</strong> "${checkout.title}" is due in ${daysLeft} day${daysLeft === 1 ? '' : 's'}.`,
+                    'warning',
+                    8000
+                );
+            });
+        };
+
+        // Enhanced Utils.showAlert to also show notifications
+        const originalShowAlert = Utils.showAlert;
+        Utils.showAlert = (message, type = 'danger', containerId = 'alertContainer') => {
+            originalShowAlert(message, type, containerId);
+            
+            // Also show as notification for success/info messages
+            if (type === 'success' || type === 'info') {
+                UI.showNotification(message, type);
+            }
+        };
+
+        // Show all user checkouts
+        UI.showAllCheckouts = async () => {
+            if (!App.user) {
+                Utils.showAlert('Please log in to view your checkouts.', 'warning');
+                return;
+            }
+
+            document.getElementById('mainContent').innerHTML = `
+                <div class="container my-4">
+                    <div class="row">
+                        <div class="col-12">
+                            <button class="btn btn-outline-secondary mb-3" onclick="UI.showDashboard()">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                            </button>
+                        </div>
+                    </div>
+                    <h2><i class="fas fa-bookmark me-2"></i>My Checkouts</h2>
+                    <div id="checkoutsContainer">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading checkouts...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            try {
+                const data = await Utils.makeRequest('/checkouts/user');
+                const container = document.getElementById('checkoutsContainer');
+                
+                if (data.checkouts.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center">
+                            <i class="fas fa-book-open fa-3x text-muted mb-3"></i>
+                            <h5>No checkouts found</h5>
+                            <p class="text-muted">You haven't borrowed any books yet.</p>
+                            <button class="btn btn-primary" onclick="UI.showBooksPage()">
+                                <i class="fas fa-search me-2"></i>Browse Books
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = data.checkouts.map(checkout => `
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-2">
+                                    <img src="${checkout.cover_image_url || 'https://via.placeholder.com/100x150?text=No+Cover'}" 
+                                         class="img-fluid rounded" alt="${checkout.title}">
+                                </div>
+                                <div class="col-md-7">
+                                    <h5 class="card-title">${checkout.title}</h5>
+                                    <p class="card-text text-muted">by ${checkout.authors.join(', ')}</p>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <small class="text-muted">
+                                                <strong>Checkout Date:</strong><br>
+                                                ${Utils.formatDate(checkout.checkout_date)}
+                                            </small>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <small class="text-muted">
+                                                <strong>Due Date:</strong><br>
+                                                ${Utils.formatDate(checkout.due_date)}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 text-end">
+                                    ${checkout.is_returned ? `
+                                        <span class="badge bg-success mb-2">Returned</span>
+                                        <br>
+                                        <small class="text-muted">
+                                            Returned: ${Utils.formatDate(checkout.return_date)}
+                                        </small>
+                                        ${checkout.is_late ? `
+                                            <br><small class="text-danger">Late return fee: $${checkout.late_fee}</small>
+                                        ` : ''}
+                                    ` : `
+                                        <span class="badge ${checkout.status === 'overdue' ? 'bg-danger' : checkout.status === 'active' ? 'bg-primary' : 'bg-warning'} mb-2">
+                                            ${checkout.status === 'overdue' ? 'Overdue' : checkout.status === 'active' ? 'Active' : 'Due Soon'}
+                                        </span>
+                                        <br>
+                                        ${checkout.days_until_due !== null ? `
+                                            <small class="text-muted">
+                                                ${checkout.days_until_due < 0 ? 
+                                                    `${Math.abs(checkout.days_until_due)} days late` : 
+                                                    `${checkout.days_until_due} days left`}
+                                            </small>
+                                        ` : ''}
+                                        <br>
+                                        <button class="btn btn-warning btn-sm mt-2" onclick="UI.showReturnModal(${checkout.book_id}, '${checkout.title}')">
+                                            <i class="fas fa-undo me-1"></i>Return Book
+                                        </button>
+                                    `}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                document.getElementById('checkoutsContainer').innerHTML = 
+                    '<div class="alert alert-danger">Failed to load checkouts.</div>';
             }
         };
     </script>

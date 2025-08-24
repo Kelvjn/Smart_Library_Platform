@@ -3,3 +3,5 @@ brary_user -p"library_password" -e "USE smart_library; SELECT b.book_id, b.title
 .total_copies, b.available_copies FROM books b ORDER BY b.book_id;"
 
 check data: node check-data.js
+
+run: node server.js

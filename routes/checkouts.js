@@ -261,7 +261,102 @@ router.put('/:id/return', authenticate, async (req, res) => {
     }
 });
 
-// GET /api/checkouts/user/:userId - Get user's checkouts
+// GET /api/checkouts/user - Get current user's checkouts
+router.get('/user', authenticate, async (req, res) => {
+    const connection = await getMySQLConnection();
+    
+    try {
+        const userId = req.user.user_id;
+        const { status = 'all', page = 1, limit = 20 } = req.query;
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+        
+        let statusCondition = '';
+        if (status === 'active') {
+            statusCondition = 'AND c.is_returned = FALSE';
+        } else if (status === 'returned') {
+            statusCondition = 'AND c.is_returned = TRUE';
+        } else if (status === 'overdue') {
+            statusCondition = 'AND c.is_returned = FALSE AND c.due_date < CURDATE()';
+        }
+        
+        // Get total count
+        const [countResult] = await connection.execute(
+            `SELECT COUNT(*) as total FROM checkouts c WHERE c.user_id = ? ${statusCondition}`,
+            [userId]
+        );
+        
+        // Get checkouts
+        const query = `
+            SELECT 
+                c.checkout_id,
+                c.checkout_date,
+                c.due_date,
+                c.return_date,
+                c.is_returned,
+                c.is_late,
+                c.late_fee,
+                b.book_id,
+                b.title,
+                b.isbn,
+                b.cover_image_url,
+                GROUP_CONCAT(
+                    CONCAT(a.first_name, ' ', a.last_name) 
+                    ORDER BY ba.author_order 
+                    SEPARATOR ', '
+                ) as authors,
+                CASE 
+                    WHEN c.is_returned = FALSE AND c.due_date < CURDATE() THEN 'overdue'
+                    WHEN c.is_returned = FALSE THEN 'active'
+                    WHEN c.is_late = TRUE THEN 'returned_late'
+                    ELSE 'returned_on_time'
+                END as status
+            FROM checkouts c
+            JOIN books b ON c.book_id = b.book_id
+            LEFT JOIN book_authors ba ON b.book_id = ba.book_id
+            LEFT JOIN authors a ON ba.author_id = a.author_id
+            WHERE c.user_id = ? ${statusCondition}
+            GROUP BY c.checkout_id
+            ORDER BY c.checkout_date DESC
+            LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}
+        `;
+        
+        const [checkouts] = await connection.execute(query, [userId]);
+        
+        const formattedCheckouts = checkouts.map(checkout => ({
+            ...checkout,
+            authors: checkout.authors ? checkout.authors.split(', ') : [],
+            days_until_due: checkout.is_returned ? null : Math.ceil((new Date(checkout.due_date) - new Date()) / (1000 * 60 * 60 * 24))
+        }));
+        
+        res.json({
+            checkouts: formattedCheckouts,
+            pagination: {
+                current_page: parseInt(page),
+                per_page: parseInt(limit),
+                total_checkouts: countResult[0].total,
+                total_pages: Math.ceil(countResult[0].total / parseInt(limit))
+            },
+            filters: {
+                status
+            }
+        });
+        
+    } catch (error) {
+        console.error('User checkouts fetch error:', error);
+        res.status(500).json({
+            error: {
+                message: 'Failed to fetch user checkouts',
+                code: 'CHECKOUTS_FETCH_ERROR'
+            }
+        });
+    } finally {
+        if (connection) {
+            connection.release();
+        }
+    }
+});
+
+// GET /api/checkouts/user/:userId - Get user's checkouts (for staff/admin)
 router.get('/user/:userId', authenticate, verifyOwnership('userId'), async (req, res) => {
     const connection = await getMySQLConnection();
     
@@ -295,7 +390,7 @@ router.get('/user/:userId', authenticate, verifyOwnership('userId'), async (req,
         );
         
         // Get checkouts
-        const [checkouts] = await connection.execute(`
+        const query2 = `
             SELECT 
                 c.checkout_id,
                 c.checkout_date,
@@ -326,8 +421,10 @@ router.get('/user/:userId', authenticate, verifyOwnership('userId'), async (req,
             WHERE c.user_id = ? ${statusCondition}
             GROUP BY c.checkout_id
             ORDER BY c.checkout_date DESC
-            LIMIT ? OFFSET ?
-        `, [userId, parseInt(limit), offset]);
+            LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}
+        `;
+        
+        const [checkouts] = await connection.execute(query2, [userId]);
         
         const formattedCheckouts = checkouts.map(checkout => ({
             ...checkout,
@@ -507,8 +604,8 @@ router.get('/overdue', requireStaff, async (req, res) => {
             WHERE c.is_returned = FALSE AND c.due_date < CURDATE()
             GROUP BY c.checkout_id
             ORDER BY c.due_date ASC
-            LIMIT ? OFFSET ?
-        `, [parseInt(limit), offset]);
+            LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}
+        `, []);
         
         const formattedCheckouts = checkouts.map(checkout => ({
             ...checkout,

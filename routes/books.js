@@ -72,7 +72,7 @@ router.get('/', optionalAuth, async (req, res) => {
             WHERE ${whereClause}
         `;
         
-        const [countResult] = await connection.execute(countQuery, queryParams);
+        const [countResult] = await connection.execute(countQuery, [...queryParams]);
         const totalBooks = countResult[0].total;
         
         // Main query with pagination
@@ -117,10 +117,9 @@ router.get('/', optionalAuth, async (req, res) => {
             WHERE ${whereClause}
             GROUP BY b.book_id
             ${orderByClause}
-            LIMIT ? OFFSET ?
+            LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}
         `;
         
-        queryParams.push(parseInt(limit), offset);
         const [books] = await connection.execute(mainQuery, queryParams);
         
         // Format the response
@@ -154,14 +153,26 @@ router.get('/', optionalAuth, async (req, res) => {
         
     } catch (error) {
         console.error('Books fetch error:', error);
+        console.error('Error details:', {
+            name: error.name,
+            message: error.message,
+            code: error.code,
+            errno: error.errno,
+            sqlState: error.sqlState,
+            sqlMessage: error.sqlMessage,
+            stack: error.stack
+        });
         res.status(500).json({
             error: {
                 message: 'Failed to fetch books',
-                code: 'BOOKS_FETCH_ERROR'
+                code: 'BOOKS_FETCH_ERROR',
+                details: process.env.NODE_ENV === 'development' ? error.message : undefined
             }
         });
     } finally {
-        connection.release();
+        if (connection) {
+            connection.release();
+        }
     }
 });
 
@@ -201,8 +212,8 @@ router.get('/popular', optionalAuth, async (req, res) => {
             WHERE b.is_active = TRUE
             GROUP BY b.book_id
             ORDER BY recent_checkouts DESC, b.average_rating DESC
-            LIMIT ?
-        `, [parseInt(limit)]);
+            LIMIT ${parseInt(limit)}
+        `);
         
         res.json({
             popular_books: books.map(book => ({
@@ -498,10 +509,9 @@ router.get('/search/advanced', optionalAuth, async (req, res) => {
             WHERE ${whereClause}
             GROUP BY b.book_id
             ORDER BY b.title
-            LIMIT ? OFFSET ?
+            LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}
         `;
         
-        queryParams.push(parseInt(limit), offset);
         const [books] = await connection.execute(booksQuery, queryParams);
         
         const formattedBooks = books.map(book => ({
@@ -582,8 +592,8 @@ router.get('/:id/reviews', async (req, res) => {
             JOIN users u ON r.user_id = u.user_id
             WHERE r.book_id = ?
             ORDER BY ${orderBy}
-            LIMIT ? OFFSET ?
-        `, [bookId, parseInt(limit), offset]);
+            LIMIT ${parseInt(limit)} OFFSET ${offset}
+        `, [bookId]);
         
         res.json({
             reviews: reviews.map(review => ({

@@ -183,7 +183,7 @@ router.get('/book/:bookId', optionalAuth, async (req, res) => {
         `, [bookId]);
         
         // Get reviews
-        const [reviews] = await connection.execute(`
+        const reviewsQuery = `
             SELECT 
                 r.review_id,
                 r.user_id,
@@ -198,8 +198,10 @@ router.get('/book/:bookId', optionalAuth, async (req, res) => {
             JOIN users u ON r.user_id = u.user_id
             WHERE r.book_id = ?
             ORDER BY ${orderBy}
-            LIMIT ? OFFSET ?
-        `, [bookId, parseInt(limit), offset]);
+            LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}
+        `;
+        
+        const [reviews] = await connection.execute(reviewsQuery, [bookId]);
         
         // Check if current user has reviewed this book
         let userReview = null;
@@ -246,6 +248,90 @@ router.get('/book/:bookId', optionalAuth, async (req, res) => {
     }
 });
 
+// GET /api/reviews/user - Get current user's reviews
+router.get('/user', authenticate, async (req, res) => {
+    const connection = await getMySQLConnection();
+    
+    try {
+        const userId = req.user.user_id;
+        const { page = 1, limit = 10 } = req.query;
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+        
+        // Get total count
+        const [countResult] = await connection.execute(
+            'SELECT COUNT(*) as total FROM reviews WHERE user_id = ?',
+            [userId]
+        );
+        
+        // Get user's reviews
+        const reviewQuery = `
+            SELECT 
+                r.review_id,
+                r.book_id,
+                r.rating,
+                r.comment,
+                r.review_date,
+                r.helpful_votes,
+                b.title as book_title,
+                b.cover_image_url,
+                GROUP_CONCAT(
+                    CONCAT(a.first_name, ' ', a.last_name) 
+                    ORDER BY ba.author_order 
+                    SEPARATOR ', '
+                ) as authors
+            FROM reviews r
+            JOIN books b ON r.book_id = b.book_id
+            LEFT JOIN book_authors ba ON b.book_id = ba.book_id
+            LEFT JOIN authors a ON ba.author_id = a.author_id
+            WHERE r.user_id = ?
+            GROUP BY r.review_id
+            ORDER BY r.review_date DESC
+            LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}
+        `;
+        
+        const [reviews] = await connection.execute(reviewQuery, [userId]);
+        
+        // Get user's review statistics
+        const [reviewStats] = await connection.execute(`
+            SELECT 
+                COUNT(*) as total_reviews,
+                AVG(rating) as average_rating,
+                MIN(rating) as min_rating,
+                MAX(rating) as max_rating,
+                SUM(helpful_votes) as total_helpful_votes
+            FROM reviews 
+            WHERE user_id = ?
+        `, [userId]);
+        
+        res.json({
+            reviews: reviews.map(review => ({
+                ...review,
+                authors: review.authors ? review.authors.split(', ') : []
+            })),
+            statistics: reviewStats[0],
+            pagination: {
+                current_page: parseInt(page),
+                per_page: parseInt(limit),
+                total_reviews: countResult[0].total,
+                total_pages: Math.ceil(countResult[0].total / parseInt(limit))
+            }
+        });
+        
+    } catch (error) {
+        console.error('User reviews fetch error:', error);
+        res.status(500).json({
+            error: {
+                message: 'Failed to fetch user reviews',
+                code: 'REVIEWS_FETCH_ERROR'
+            }
+        });
+    } finally {
+        if (connection) {
+            connection.release();
+        }
+    }
+});
+
 // GET /api/reviews/user/:userId - Get reviews by a specific user
 router.get('/user/:userId', optionalAuth, async (req, res) => {
     const connection = await getMySQLConnection();
@@ -288,7 +374,7 @@ router.get('/user/:userId', optionalAuth, async (req, res) => {
         );
         
         // Get user's reviews
-        const [reviews] = await connection.execute(`
+        const userReviewsQuery = `
             SELECT 
                 r.review_id,
                 r.book_id,
@@ -310,8 +396,10 @@ router.get('/user/:userId', optionalAuth, async (req, res) => {
             WHERE r.user_id = ?
             GROUP BY r.review_id
             ORDER BY r.review_date DESC
-            LIMIT ? OFFSET ?
-        `, [userId, parseInt(limit), offset]);
+            LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}
+        `;
+        
+        const [reviews] = await connection.execute(userReviewsQuery, [userId]);
         
         // Get user's review statistics
         const [reviewStats] = await connection.execute(`
