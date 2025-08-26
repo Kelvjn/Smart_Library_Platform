@@ -1,4 +1,13 @@
-// Smart Library Platform - Main Server
+/**
+ * Smart Library Platform - Main Server
+ * 
+ * A comprehensive library management system built with Node.js and Express.
+ * Features include user authentication, book management, borrowing/returning,
+ * reviews, and analytics with both MySQL and MongoDB integration.
+ * 
+ * @author Smart Library Platform Team
+ * @version 1.0.0
+ */
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -19,6 +28,8 @@ const analyticsRoutes = require('./routes/analytics');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const http = require('http');
+const https = require('https');
 
 // Security middleware
 app.use(helmet({
@@ -28,7 +39,7 @@ app.use(helmet({
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
             fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
             scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
-            imgSrc: ["'self'", "data:", "https:", "blob:"],
+            imgSrc: ["'self'", "data:", "https:", "blob:", "https://covers.openlibrary.org", "https://upload.wikimedia.org", "https://images-na.ssl-images-amazon.com"],
             connectSrc: ["'self'"],
             objectSrc: ["'none'"],
             mediaSrc: ["'self'"],
@@ -37,16 +48,23 @@ app.use(helmet({
     }
 }));
 
-// Rate limiting
+// Rate limiting - more permissive for development
 const limiter = rateLimit({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
+    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 1000, // Increased to 1000 requests per windowMs
     message: {
         error: 'Too many requests from this IP, please try again later.',
         retryAfter: Math.ceil((parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000) / 1000)
     },
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => {
+        // Skip rate limiting for certain routes in development
+        if (process.env.NODE_ENV !== 'production') {
+            return req.url.startsWith('/api/books') || req.url.startsWith('/img');
+        }
+        return false;
+    }
 });
 
 app.use(limiter);
@@ -109,6 +127,92 @@ app.use('/api/checkouts', checkoutRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/analytics', analyticsRoutes);
+
+// Image proxy to avoid external host hotlink 403s
+// Usage: /img?url=https%3A%2F%2Fexample.com%2Fcover.jpg
+app.get('/img', async (req, res) => {
+    try {
+        const imageUrl = req.query.url;
+        if (!imageUrl) {
+            return res.status(400).send('Missing url parameter');
+        }
+        
+        console.log('Image proxy request for:', imageUrl);
+        
+        const parsed = new URL(imageUrl);
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+            return res.status(400).send('Invalid protocol');
+        }
+        
+        // Allow common book cover hosts
+        const allowedHosts = new Set([
+            'images-na.ssl-images-amazon.com',
+            'upload.wikimedia.org',
+            'covers.openlibrary.org',
+            'images.unsplash.com',
+            'm.media-amazon.com',
+            'images.amazon.com',
+            'prodimage.images-bn.com'
+        ]);
+        
+        // For development, allow more hosts
+        if (process.env.NODE_ENV !== 'production' || allowedHosts.has(parsed.host)) {
+            // Set cache headers
+            res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+
+            const client = parsed.protocol === 'http:' ? http : https;
+            const request = client.get(imageUrl, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                    'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'Referer': 'https://www.goodreads.com/',
+                    'Sec-Fetch-Dest': 'image',
+                    'Sec-Fetch-Mode': 'no-cors',
+                    'Sec-Fetch-Site': 'cross-site'
+                }
+            }, (upstream) => {
+                console.log(`Image proxy response: ${upstream.statusCode} for ${imageUrl}`);
+                
+                if (upstream.statusCode && upstream.statusCode >= 400) {
+                    console.error(`Image proxy error ${upstream.statusCode} for ${imageUrl}`);
+                    res.status(upstream.statusCode).end();
+                    upstream.resume();
+                    return;
+                }
+                
+                // Forward content type if present
+                const contentType = upstream.headers['content-type'] || 'image/jpeg';
+                res.setHeader('Content-Type', contentType);
+                
+                // Forward content length if present
+                if (upstream.headers['content-length']) {
+                    res.setHeader('Content-Length', upstream.headers['content-length']);
+                }
+                
+                upstream.pipe(res);
+            });
+
+            request.on('error', (err) => {
+                console.error('Image proxy request error:', err.message);
+                res.status(502).send('Proxy error');
+            });
+            
+            request.setTimeout(10000, () => {
+                console.error('Image proxy timeout for:', imageUrl);
+                request.destroy();
+                res.status(504).send('Timeout');
+            });
+        } else {
+            res.status(403).send('Host not allowed: ' + parsed.host);
+        }
+    } catch (err) {
+        console.error('Image proxy failure:', err);
+        res.status(500).send('Server error');
+    }
+});
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -219,7 +323,11 @@ app.use('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Initialize databases and start server
+/**
+ * Initialize databases and start the Express server
+ * Sets up MySQL and MongoDB connections, then starts the HTTP server
+ * with proper error handling and graceful shutdown capabilities
+ */
 async function startServer() {
     try {
         console.log('Initializing databases...');

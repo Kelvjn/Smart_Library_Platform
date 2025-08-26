@@ -1,4 +1,20 @@
 <!DOCTYPE html>
+<!--
+    Smart Library Platform - Frontend Application
+    
+    Features:
+    - User authentication and authorization
+    - Book browsing and advanced search
+    - Book borrowing and returning system
+    - Review and rating functionality
+    - Real-time availability tracking
+    - Admin dashboard and analytics
+    
+    Security:
+    - Content Security Policy (CSP) compliant
+    - Event delegation for all user interactions
+    - Secure API communication with JWT tokens
+-->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -681,14 +697,40 @@
     
     <!-- Application JavaScript -->
     <script>
-        // Application State
+        /**
+         * Smart Library Platform - Frontend JavaScript
+         * 
+         * Architecture:
+         * - App: Global application state
+         * - Utils: Utility functions for API calls and helpers  
+         * - Auth: Authentication related functions
+         * - UI: User interface management and rendering
+         * 
+         * Event Handling:
+         * - Uses event delegation for CSP compliance
+         * - All user interactions handled through centralized listeners
+         */
+
+        // ============================================================================
+        // APPLICATION STATE
+        // ============================================================================
+        
+        /**
+         * Global application state
+         * @namespace App
+         */
         const App = {
+            /** @type {Object|null} Current authenticated user */
             user: null,
+            /** @type {string|null} JWT authentication token */
             token: localStorage.getItem('library_token'),
+            /** @type {string} Base API URL for all requests */
             baseURL: window.location.origin + '/api'
         };
 
-        // Utility Functions
+        // ============================================================================
+        // UTILITY FUNCTIONS
+        // ============================================================================
         const Utils = {
             showAlert: (message, type = 'danger', containerId = 'alertContainer') => {
                 const container = document.getElementById(containerId);
@@ -750,7 +792,9 @@
             }
         };
 
-        // Authentication Functions
+        // ============================================================================
+        // AUTHENTICATION FUNCTIONS
+        // ============================================================================
         const Auth = {
             login: async (username, password) => {
                 try {
@@ -827,8 +871,433 @@
             }
         };
 
-        // UI Functions
+        // ============================================================================
+        // USER INTERFACE FUNCTIONS
+        // ============================================================================
         const UI = {
+            // Generate beautiful book covers inspired by real covers
+            getPlaceholderImage: (title, size, genre = 'Fiction') => {
+                const [width, height] = size.split('x');
+                
+                // Book-specific designs inspired by real covers from user's images
+                const bookCovers = {
+                    '1984': {
+                        bgColor: '#2c3e50',
+                        accentColor: '#e74c3c',
+                        pattern: 'dystopian',
+                        title: '1984',
+                        subtitle: 'GEORGE ORWELL',
+                        style: 'propaganda'
+                    },
+                    'Atomic Habits': {
+                        bgColor: '#ffffff',
+                        accentColor: '#ff6b35',
+                        pattern: 'dots',
+                        title: 'ATOMIC',
+                        subtitle: 'HABITS',
+                        style: 'modern'
+                    },
+                    'Clean Code': {
+                        bgColor: '#1a1a2e',
+                        accentColor: '#00d4ff',
+                        pattern: 'galaxy',
+                        title: 'CLEAN CODE',
+                        subtitle: 'ROBERT C. MARTIN',
+                        style: 'space'
+                    },
+                    'Designing Data-Intensive Applications': {
+                        bgColor: '#e74c3c',
+                        accentColor: '#ffffff',
+                        pattern: 'animal',
+                        title: 'DESIGNING',
+                        subtitle: 'DATA-INTENSIVE',
+                        style: 'oreilly'
+                    },
+                    'Dune': {
+                        bgColor: '#000000',
+                        accentColor: '#ffffff',
+                        pattern: 'desert',
+                        title: 'DUNE',
+                        subtitle: 'FRANK HERBERT',
+                        style: 'minimal'
+                    },
+                    'Educated': {
+                        bgColor: '#f5f5dc',
+                        accentColor: '#8b4513',
+                        pattern: 'pencil',
+                        title: 'EDUCATED',
+                        subtitle: 'TARA WESTOVER',
+                        style: 'memoir'
+                    },
+                    'Harry Potter and the Philosopher\'s Stone': {
+                        bgColor: '#8b4513',
+                        accentColor: '#ffd700',
+                        pattern: 'magic',
+                        title: 'HARRY POTTER',
+                        subtitle: 'J.K. ROWLING',
+                        style: 'fantasy'
+                    },
+                    'Pride and Prejudice': {
+                        bgColor: '#e74c3c',
+                        accentColor: '#ffffff',
+                        pattern: 'bridge',
+                        title: 'PRIDE &',
+                        subtitle: 'PREJUDICE',
+                        style: 'classic'
+                    },
+                    'Sapiens: A Brief History of Humankind': {
+                        bgColor: '#ffffff',
+                        accentColor: '#e74c3c',
+                        pattern: 'fingerprint',
+                        title: 'SAPIENS',
+                        subtitle: 'YUVAL NOAH HARARI',
+                        style: 'modern'
+                    },
+                    'The Catcher in the Rye': {
+                        bgColor: '#ff8c00',
+                        accentColor: '#ffffff',
+                        pattern: 'carousel',
+                        title: 'THE CATCHER',
+                        subtitle: 'IN THE RYE',
+                        style: 'vintage'
+                    },
+                    'The Great Gatsby': {
+                        bgColor: '#1e3a8a',
+                        accentColor: '#ffffff',
+                        pattern: 'eyes',
+                        title: 'THE GREAT',
+                        subtitle: 'GATSBY',
+                        style: 'artdeco'
+                    },
+                    'The Hobbit': {
+                        bgColor: '#000000',
+                        accentColor: '#ffd700',
+                        pattern: 'mountains',
+                        title: 'THE HOBBIT',
+                        subtitle: 'J.R.R. TOLKIEN',
+                        style: 'fantasy'
+                    },
+                    'The Lord of the Rings: The Fellowship of the Ring': {
+                        bgColor: '#000000',
+                        accentColor: '#ffd700',
+                        pattern: 'ring',
+                        title: 'THE FELLOWSHIP',
+                        subtitle: 'OF THE RING',
+                        style: 'epic'
+                    },
+                    'The Midnight Library': {
+                        bgColor: '#1e3a8a',
+                        accentColor: '#ffffff',
+                        pattern: 'library',
+                        title: 'THE MIDNIGHT',
+                        subtitle: 'LIBRARY',
+                        style: 'magical'
+                    },
+                    'The Pragmatic Programmer': {
+                        bgColor: '#000000',
+                        accentColor: '#ffffff',
+                        pattern: 'tool',
+                        title: 'THE PRAGMATIC',
+                        subtitle: 'PROGRAMMER',
+                        style: 'professional'
+                    },
+                    'The Seven Husbands of Evelyn Hugo': {
+                        bgColor: '#27ae60',
+                        accentColor: '#ffffff',
+                        pattern: 'glamour',
+                        title: 'THE SEVEN',
+                        subtitle: 'HUSBANDS',
+                        style: 'hollywood'
+                    },
+                    'The Silent Patient': {
+                        bgColor: '#f5f5dc',
+                        accentColor: '#c0392b',
+                        pattern: 'face',
+                        title: 'THE SILENT',
+                        subtitle: 'PATIENT',
+                        style: 'thriller'
+                    },
+                    'To Kill a Mockingbird': {
+                        bgColor: '#8b4513',
+                        accentColor: '#ffffff',
+                        pattern: 'tree',
+                        title: 'TO KILL A',
+                        subtitle: 'MOCKINGBIRD',
+                        style: 'classic'
+                    },
+                    'Where the Crawdads Sing': {
+                        bgColor: '#ff8c00',
+                        accentColor: '#ffffff',
+                        pattern: 'marsh',
+                        title: 'WHERE THE',
+                        subtitle: 'CRAWDADS SING',
+                        style: 'nature'
+                    },
+                    'You Don\'t Know JS: Scope & Closures': {
+                        bgColor: '#2c3e50',
+                        accentColor: '#f39c12',
+                        pattern: 'code',
+                        title: 'YOU DON\'T',
+                        subtitle: 'KNOW JS',
+                        style: 'tech'
+                    }
+                };
+                
+                // Find the book by title (case-insensitive)
+                let design = null;
+                for (const [bookTitle, cover] of Object.entries(bookCovers)) {
+                    if (bookTitle.toLowerCase() === title.toLowerCase()) {
+                        design = cover;
+                        break;
+                    }
+                }
+                
+                // Fallback to genre-based design
+                if (!design) {
+                    const genreDesigns = {
+                        'Information Technology': { bgColor: '#2c3e50', accentColor: '#3498db', pattern: 'tech', title: 'TECH', subtitle: 'BOOK' },
+                        'Science Fiction': { bgColor: '#8e44ad', accentColor: '#e74c3c', pattern: 'space', title: 'SCI-FI', subtitle: 'BOOK' },
+                        'Fantasy': { bgColor: '#27ae60', accentColor: '#f39c12', pattern: 'magic', title: 'FANTASY', subtitle: 'BOOK' },
+                        'Romance': { bgColor: '#e74c3c', accentColor: '#f8c9d4', pattern: 'hearts', title: 'ROMANCE', subtitle: 'BOOK' },
+                        'Classic Literature': { bgColor: '#8b4513', accentColor: '#daa520', pattern: 'classic', title: 'CLASSIC', subtitle: 'BOOK' },
+                        'Fiction': { bgColor: '#34495e', accentColor: '#95a5a6', pattern: 'modern', title: 'FICTION', subtitle: 'BOOK' },
+                        'Dystopian Fiction': { bgColor: '#2c3e50', accentColor: '#e74c3c', pattern: 'dystopian', title: 'DYSTOPIA', subtitle: 'BOOK' },
+                        'Non-fiction': { bgColor: '#2980b9', accentColor: '#ecf0f1', pattern: 'academic', title: 'NON-FICTION', subtitle: 'BOOK' },
+                        'Coming-of-age Fiction': { bgColor: '#e67e22', accentColor: '#f39c12', pattern: 'youth', title: 'COMING-OF-AGE', subtitle: 'BOOK' },
+                        'Mystery': { bgColor: '#2c3e50', accentColor: '#e74c3c', pattern: 'mystery', title: 'MYSTERY', subtitle: 'BOOK' },
+                        'Historical Fiction': { bgColor: '#8b4513', accentColor: '#daa520', pattern: 'historical', title: 'HISTORICAL', subtitle: 'BOOK' },
+                        'Thriller': { bgColor: '#c0392b', accentColor: '#e74c3c', pattern: 'thriller', title: 'THRILLER', subtitle: 'BOOK' },
+                        'Memoir': { bgColor: '#16a085', accentColor: '#1abc9c', pattern: 'personal', title: 'MEMOIR', subtitle: 'BOOK' },
+                        'Self-Help': { bgColor: '#27ae60', accentColor: '#2ecc71', pattern: 'growth', title: 'SELF-HELP', subtitle: 'BOOK' }
+                    };
+                    
+                    // Try to find genre from the book title or use default
+                    let foundGenre = 'Fiction';
+                    for (const [genreName, genreDesign] of Object.entries(genreDesigns)) {
+                        if (genre.toLowerCase().includes(genreName.toLowerCase()) || 
+                            genreName.toLowerCase().includes(genre.toLowerCase())) {
+                            foundGenre = genreName;
+                            break;
+                        }
+                    }
+                    design = genreDesigns[foundGenre] || { bgColor: '#7f8c8d', accentColor: '#95a5a6', pattern: 'default', title: 'BOOK', subtitle: 'STORY' };
+                }
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = parseInt(width);
+                canvas.height = parseInt(height);
+                const ctx = canvas.getContext('2d');
+                
+                // Create beautiful background
+                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, design.bgColor);
+                gradient.addColorStop(1, UI.darkenColor(design.bgColor, 20));
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Add pattern-specific elements based on real book covers
+                ctx.fillStyle = design.accentColor;
+                ctx.globalAlpha = 0.6;
+                
+                if (design.style === 'propaganda') {
+                    // 1984 style - dark with red accents
+                    ctx.fillStyle = '#e74c3c';
+                    for (let i = 0; i < 10; i++) {
+                        const x = Math.random() * canvas.width;
+                        const y = Math.random() * canvas.height;
+                        ctx.fillRect(x, y, 3, 3);
+                    }
+                } else if (design.style === 'modern') {
+                    // Atomic Habits style - white background with orange dots
+                    if (design.pattern === 'dots') {
+                        for (let i = 0; i < 50; i++) {
+                            const x = Math.random() * canvas.width;
+                            const y = Math.random() * canvas.height;
+                            const size = Math.random() * 4 + 2;
+                            ctx.fillRect(x, y, size, size);
+                        }
+                    } else if (design.pattern === 'fingerprint') {
+                        // Sapiens style - fingerprint pattern
+                        for (let i = 0; i < 30; i++) {
+                            const x = Math.random() * canvas.width;
+                            const y = Math.random() * canvas.height;
+                            ctx.fillRect(x, y, 2, 2);
+                        }
+                    }
+                } else if (design.style === 'space') {
+                    // Clean Code style - galaxy background
+                    for (let i = 0; i < 40; i++) {
+                        const x = Math.random() * canvas.width;
+                        const y = Math.random() * canvas.height;
+                        const size = Math.random() * 3 + 1;
+                        ctx.fillRect(x, y, size, size);
+                    }
+                } else if (design.style === 'minimal') {
+                    // Dune style - minimal with stars
+                    for (let i = 0; i < 25; i++) {
+                        const x = Math.random() * canvas.width;
+                        const y = Math.random() * canvas.height;
+                        ctx.fillRect(x, y, 2, 2);
+                    }
+                } else if (design.style === 'fantasy') {
+                    // Harry Potter and Hobbit style - magical elements
+                    for (let i = 0; i < 30; i++) {
+                        const x = Math.random() * canvas.width;
+                        const y = Math.random() * canvas.height;
+                        ctx.fillRect(x, y, 3, 3);
+                    }
+                } else if (design.style === 'classic') {
+                    // Classic literature style
+                    if (design.pattern === 'tree') {
+                        // To Kill a Mockingbird style - tree leaves
+                        ctx.fillStyle = '#27ae60';
+                        for (let i = 0; i < 20; i++) {
+                            const x = Math.random() * canvas.width;
+                            const y = Math.random() * canvas.height;
+                            ctx.fillRect(x, y, 4, 4);
+                        }
+                    }
+                } else if (design.style === 'vintage') {
+                    // The Catcher in the Rye style - vintage orange
+                    for (let i = 0; i < 15; i++) {
+                        const x = Math.random() * canvas.width;
+                        const y = Math.random() * canvas.height;
+                        ctx.fillRect(x, y, 3, 3);
+                    }
+                } else if (design.style === 'artdeco') {
+                    // The Great Gatsby style - art deco elements
+                    for (let i = 0; i < 20; i++) {
+                        const x = Math.random() * canvas.width;
+                        const y = Math.random() * canvas.height;
+                        ctx.fillRect(x, y, 2, 2);
+                    }
+                } else if (design.style === 'epic') {
+                    // Lord of the Rings style - epic fantasy
+                    for (let i = 0; i < 25; i++) {
+                        const x = Math.random() * canvas.width;
+                        const y = Math.random() * canvas.height;
+                        ctx.fillRect(x, y, 3, 3);
+                    }
+                } else if (design.style === 'magical') {
+                    // The Midnight Library style - magical library
+                    for (let i = 0; i < 35; i++) {
+                        const x = Math.random() * canvas.width;
+                        const y = Math.random() * canvas.height;
+                        ctx.fillRect(x, y, 2, 2);
+                    }
+                } else if (design.style === 'professional') {
+                    // The Pragmatic Programmer style - professional
+                    for (let i = 0; i < 10; i++) {
+                        const x = Math.random() * canvas.width;
+                        const y = Math.random() * canvas.height;
+                        ctx.fillRect(x, y, 2, 2);
+                    }
+                } else if (design.style === 'hollywood') {
+                    // The Seven Husbands of Evelyn Hugo style - glamour
+                    for (let i = 0; i < 15; i++) {
+                        const x = Math.random() * canvas.width;
+                        const y = Math.random() * canvas.height;
+                        ctx.fillRect(x, y, 3, 3);
+                    }
+                } else if (design.style === 'thriller') {
+                    // The Silent Patient style - thriller
+                    for (let i = 0; i < 12; i++) {
+                        const x = Math.random() * canvas.width;
+                        const y = Math.random() * canvas.height;
+                        ctx.fillRect(x, y, 2, 2);
+                    }
+                } else if (design.style === 'nature') {
+                    // Where the Crawdads Sing style - nature
+                    for (let i = 0; i < 18; i++) {
+                        const x = Math.random() * canvas.width;
+                        const y = Math.random() * canvas.height;
+                        ctx.fillRect(x, y, 3, 3);
+                    }
+                } else if (design.style === 'tech') {
+                    // You Don't Know JS style - tech
+                    for (let i = 0; i < 20; i++) {
+                        const x = Math.random() * canvas.width;
+                        const y = Math.random() * canvas.height;
+                        ctx.fillRect(x, y, 2, 2);
+                    }
+                }
+                
+                ctx.globalAlpha = 1.0;
+                
+                // Add title area based on real book cover styles
+                if (design.style === 'modern' && design.pattern === 'dots') {
+                    // Atomic Habits style - no white background, just dots
+                    ctx.fillStyle = design.accentColor;
+                    ctx.font = `bold ${Math.max(16, Math.min(canvas.width / 10, 24))}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(design.title, canvas.width / 2, canvas.height * 0.4);
+                    ctx.fillText(design.subtitle, canvas.width / 2, canvas.height * 0.5);
+                } else if (design.style === 'minimal') {
+                    // Dune style - minimal with large title
+                    ctx.fillStyle = design.accentColor;
+                    ctx.font = `bold ${Math.max(20, Math.min(canvas.width / 8, 28))}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(design.title, canvas.width / 2, canvas.height * 0.5);
+                    ctx.font = `${Math.max(12, Math.min(canvas.width / 12, 16))}px Arial`;
+                    ctx.fillText(design.subtitle, canvas.width / 2, canvas.height * 0.7);
+                } else if (design.style === 'fantasy') {
+                    // Harry Potter and Hobbit style - elegant titles
+                    ctx.fillStyle = design.accentColor;
+                    ctx.font = `bold ${Math.max(14, Math.min(canvas.width / 10, 20))}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(design.title, canvas.width / 2, canvas.height * 0.4);
+                    ctx.font = `${Math.max(10, Math.min(canvas.width / 14, 14))}px Arial`;
+                    ctx.fillText(design.subtitle, canvas.width / 2, canvas.height * 0.5);
+                } else if (design.style === 'classic') {
+                    // Classic literature style - elegant white area
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(canvas.width * 0.1, canvas.height * 0.6, canvas.width * 0.8, canvas.height * 0.3);
+                    
+                    ctx.fillStyle = design.bgColor;
+                    ctx.font = `bold ${Math.max(12, Math.min(canvas.width / 12, 18))}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(design.title, canvas.width / 2, canvas.height * 0.72);
+                    
+                    ctx.font = `${Math.max(10, Math.min(canvas.width / 16, 14))}px Arial`;
+                    ctx.fillText(design.subtitle, canvas.width / 2, canvas.height * 0.82);
+                } else {
+                    // Default style - elegant white area
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(canvas.width * 0.1, canvas.height * 0.6, canvas.width * 0.8, canvas.height * 0.3);
+                    
+                    ctx.fillStyle = design.bgColor;
+                    ctx.font = `bold ${Math.max(12, Math.min(canvas.width / 14, 18))}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(design.title, canvas.width / 2, canvas.height * 0.72);
+                    
+                    ctx.font = `${Math.max(10, Math.min(canvas.width / 16, 14))}px Arial`;
+                    ctx.fillText(design.subtitle, canvas.width / 2, canvas.height * 0.82);
+                }
+                
+                // Add professional border
+                ctx.strokeStyle = design.accentColor;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+                
+                return canvas.toDataURL();
+            },
+
+            // Helper function to darken colors
+            darkenColor: (color, percent) => {
+                const num = parseInt(color.replace("#", ""), 16);
+                const amt = Math.round(2.55 * percent);
+                const R = (num >> 16) - amt;
+                const G = (num >> 8 & 0x00FF) - amt;
+                const B = (num & 0x0000FF) - amt;
+                return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+                    (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+                    (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+            },
             updateAuthState: () => {
                 const authNavItems = document.getElementById('authNavItems');
                 const userNavItems = document.getElementById('userNavItems');
@@ -860,7 +1329,7 @@
                             <h1>Welcome to Smart Library Platform</h1>
                             <p>Discover, borrow, and explore thousands of books with our intelligent library management system</p>
                             <div>
-                                <button class="btn btn-light btn-lg me-3" onclick="UI.showBooksPage()">
+                                <button class="btn btn-light btn-lg me-3 explore-books-btn">
                                     <i class="fas fa-compass me-2"></i>Explore Books
                                 </button>
                                 ${!App.user ? `
@@ -868,7 +1337,7 @@
                                     <i class="fas fa-user-plus me-2"></i>Join Today
                                 </button>
                                 ` : `
-                                <button class="btn btn-outline-light btn-lg" onclick="UI.showDashboard()">
+                                <button class="btn btn-outline-light btn-lg hero-dashboard-btn">
                                     <i class="fas fa-tachometer-alt me-2"></i>My Dashboard
                                 </button>
                                 `}
@@ -958,8 +1427,10 @@
                     container.innerHTML = data.books.map(book => `
                         <div class="col-md-4 mb-4">
                             <div class="card h-100">
-                                <img src="${book.cover_image_url || 'https://via.placeholder.com/300x400?text=No+Cover'}" 
-                                     class="card-img-top book-cover" alt="${book.title}">
+                                                <img src="${book.cover_image_url || 'https://via.placeholder.com/300x400/f0f0f0/666?text=Loading...'}"
+                     class="card-img-top book-cover book-cover-img" alt="${book.title}"
+                     data-fallback="${UI.getPlaceholderImage(book.title, '300x400', book.genre)}"
+                     loading="lazy">
                                 <div class="card-body d-flex flex-column">
                                     <h5 class="card-title">${book.title}</h5>
                                     <p class="card-text text-muted small">by ${book.authors.join(', ')}</p>
@@ -1190,8 +1661,10 @@
                     container.innerHTML = data.books.map(book => `
                         <div class="col-md-3 mb-4">
                             <div class="card h-100">
-                                <img src="${book.cover_image_url || 'https://via.placeholder.com/200x300?text=No+Cover'}" 
-                                     class="card-img-top book-cover" alt="${book.title}" style="height: 250px;">
+                                <img src="${book.cover_image_url || 'https://via.placeholder.com/200x300/f0f0f0/666?text=Loading...'}" 
+                                     class="card-img-top book-cover book-cover-img" alt="${book.title}"
+                                     data-fallback="${UI.getPlaceholderImage(book.genre, '200x300')}"
+                                     style="height: 250px; object-fit: cover;" loading="lazy">
                                 <div class="card-body d-flex flex-column">
                                     <h6 class="card-title">${book.title}</h6>
                                     <p class="card-text text-muted small">by ${book.authors.join(', ')}</p>
@@ -1253,7 +1726,7 @@
                 // Previous button
                 paginationHTML += `
                     <li class="page-item ${!has_prev ? 'disabled' : ''}">
-                        <a class="page-link" href="#" onclick="${has_prev ? `event.preventDefault(); (${onPageChange})(${current_page - 1})` : 'event.preventDefault()'}">
+                        <a class="page-link pagination-btn" href="#" data-page="${current_page - 1}" data-enabled="${has_prev}">
                             Previous
                         </a>
                     </li>
@@ -1266,7 +1739,7 @@
                 for (let i = startPage; i <= endPage; i++) {
                     paginationHTML += `
                         <li class="page-item ${i === current_page ? 'active' : ''}">
-                            <a class="page-link" href="#" onclick="event.preventDefault(); (${onPageChange})(${i})">${i}</a>
+                            <a class="page-link pagination-btn" href="#" data-page="${i}">${i}</a>
                         </li>
                     `;
                 }
@@ -1274,7 +1747,7 @@
                 // Next button
                 paginationHTML += `
                     <li class="page-item ${!has_next ? 'disabled' : ''}">
-                        <a class="page-link" href="#" onclick="${has_next ? `event.preventDefault(); (${onPageChange})(${current_page + 1})` : 'event.preventDefault()'}">
+                        <a class="page-link pagination-btn" href="#" data-page="${current_page + 1}" data-enabled="${has_next}">
                             Next
                         </a>
                     </li>
@@ -1282,6 +1755,9 @@
 
                 paginationHTML += '</ul>';
                 container.innerHTML = paginationHTML;
+                
+                // Store the callback for pagination events
+                container.dataset.pageCallback = onPageChange.toString();
             },
 
             searchBooks: () => {
@@ -1360,11 +1836,13 @@
                     document.getElementById('bookDetailsContainer').innerHTML = `
                         <div class="row">
                             <div class="col-md-4">
-                                <img src="${book.cover_image_url || 'https://via.placeholder.com/300x400?text=No+Cover'}" 
-                                     class="img-fluid rounded book-cover" alt="${book.title}">
+                                <img src="${book.cover_image_url || 'https://via.placeholder.com/300x400/f0f0f0/666?text=Loading...'}" 
+                                     class="img-fluid rounded book-cover book-cover-img" alt="${book.title}"
+                                     data-fallback="${UI.getPlaceholderImage(book.genre, '300x400')}"
+                                     loading="lazy">
                                 <div class="mt-3">
 
-                                    <!-- Debug: User: ${App.user ? 'Logged in' : 'Not logged in'}, Available: ${book.is_available}, Borrowed: ${UI.hasUserBorrowedBook(book.book_id)}, Reviewed: ${UI.hasUserReviewedBook(book.book_id)} -->
+
                                     ${App.user ? `
                                         ${book.is_available ? `
                                             <button class="btn btn-success w-100 mb-2 borrow-btn" data-book-id="${book.book_id}" data-book-title="${book.title}">
@@ -1450,7 +1928,7 @@
                                 <h4>Reviews</h4>
                                 ${App.user ? `
                                     <div class="mb-3">
-                                        <button class="btn btn-outline-primary" onclick="UI.showAddReviewForm(${book.book_id})">
+                                        <button class="btn btn-outline-primary add-review-btn" data-book-id="${book.book_id}">
                                             <i class="fas fa-plus me-2"></i>Add Review
                                         </button>
                                     </div>
@@ -1621,7 +2099,7 @@
                                  <div class="card">
                                      <div class="card-header d-flex justify-content-between align-items-center">
                                          <h5><i class="fas fa-bookmark me-2"></i>My Checkouts</h5>
-                                         <button class="btn btn-outline-primary btn-sm" onclick="UI.showAllCheckouts()">
+                                         <button class="btn btn-outline-primary btn-sm view-all-checkouts-btn">
                                              <i class="fas fa-list me-1"></i>View All
                                          </button>
                                      </div>
@@ -1639,7 +2117,7 @@
                                                              ${checkout.is_overdue ? 'Overdue' : `${checkout.days_until_due} days left`}
                                                          </span>
                                                          <br>
-                                                         <button class="btn btn-warning btn-sm" onclick="UI.showReturnModal(${checkout.book_id}, '${checkout.title}')">
+                                                         <button class="btn btn-warning btn-sm return-btn" data-book-id="${checkout.book_id}" data-book-title="${checkout.title}">
                                                              <i class="fas fa-undo me-1"></i>Return
                                                          </button>
                                                      </div>
@@ -1743,6 +2221,36 @@
                 } else if (e.target.classList.contains('view-details-btn')) {
                     const bookId = e.target.dataset.bookId;
                     UI.showBookDetails(bookId);
+                } else if (e.target.classList.contains('explore-books-btn')) {
+                    UI.showBooksPage();
+                } else if (e.target.classList.contains('hero-dashboard-btn')) {
+                    UI.showDashboard();
+                } else if (e.target.classList.contains('pagination-btn')) {
+                    e.preventDefault();
+                    const enabled = e.target.dataset.enabled;
+                    if (enabled === 'false') return;
+                    
+                    const page = parseInt(e.target.dataset.page);
+                    const container = e.target.closest('[data-page-callback]');
+                    if (container && container.dataset.pageCallback) {
+                        try {
+                            const callback = eval(`(${container.dataset.pageCallback})`);
+                            callback(page);
+                        } catch (error) {
+                            console.error('Pagination callback error:', error);
+                        }
+                    }
+                } else if (e.target.classList.contains('add-review-btn')) {
+                    const bookId = e.target.dataset.bookId;
+                    UI.showAddReviewForm(bookId);
+                } else if (e.target.classList.contains('view-all-checkouts-btn')) {
+                    UI.showAllCheckouts();
+                } else if (e.target.classList.contains('clear-all-filters-btn')) {
+                    UI.clearAllFilters();
+                } else if (e.target.classList.contains('back-to-dashboard-btn')) {
+                    UI.showDashboard();
+                } else if (e.target.classList.contains('browse-books-btn')) {
+                    UI.showBooksPage();
                 }
             });
 
@@ -1759,6 +2267,24 @@
                     UI.handleSortChange();
                 }
             });
+
+            // Handle image loading errors - use fallback only when real images fail
+            document.addEventListener('error', (e) => {
+                if (e.target.tagName === 'IMG' && e.target.classList.contains('book-cover-img')) {
+                    const fallback = e.target.getAttribute('data-fallback');
+                                    if (fallback && e.target.src !== fallback) {
+                    e.target.src = fallback;
+                    } else if (!fallback) {
+                        // If no fallback is set, generate one
+                        const card = e.target.closest('.card');
+                        const titleElement = card?.querySelector('.card-title');
+                        if (titleElement) {
+                            const bookTitle = titleElement.textContent;
+                            e.target.src = UI.getPlaceholderImage(bookTitle, '300x400', 'Fiction');
+                        }
+                    }
+                }
+            }, true);
 
             // Show home page initially
             UI.showHomePage();
@@ -1898,7 +2424,7 @@
                                 <i class="fas fa-search fa-3x text-muted mb-3"></i>
                                 <h5>No books found</h5>
                                 <p class="text-muted">Try adjusting your search criteria or clear filters to see all books.</p>
-                                <button class="btn btn-outline-primary" onclick="UI.clearAllFilters()">
+                                <button class="btn btn-outline-primary clear-all-filters-btn">
                                     Clear All Filters
                                 </button>
                             </div>
@@ -1911,8 +2437,10 @@
             container.innerHTML = data.books.map(book => `
                 <div class="col-md-3 mb-4">
                     <div class="card h-100">
-                        <img src="${book.cover_image_url || 'https://via.placeholder.com/200x300?text=No+Cover'}" 
-                             class="card-img-top book-cover" alt="${book.title}" style="height: 250px;">
+                        <img src="${book.cover_image_url || 'https://via.placeholder.com/200x300/f0f0f0/666?text=Loading...'}" 
+                             class="card-img-top book-cover book-cover-img" alt="${book.title}" 
+                             data-fallback="${UI.getPlaceholderImage(book.genre, '200x300')}"
+                             style="height: 250px; object-fit: cover;" loading="lazy">
                         <div class="card-body d-flex flex-column">
                             <h6 class="card-title" title="${book.title}">${book.title}</h6>
                             <p class="card-text text-muted small">by ${book.authors?.join(', ') || 'Unknown authors'}</p>
@@ -2035,17 +2563,13 @@
             if (!App.user) return;
             
             try {
-                console.log('Loading user data for user:', App.user.user_id);
-                
                 // Load user's checkouts
                 const checkoutData = await Utils.makeRequest('/checkouts/user');
                 App.userCheckouts = checkoutData.checkouts || [];
-                console.log('Loaded checkouts:', App.userCheckouts);
                 
                 // Load user's reviews
                 const reviewData = await Utils.makeRequest('/reviews/user');
                 App.userReviews = reviewData.reviews || [];
-                console.log('Loaded reviews:', App.userReviews);
             } catch (error) {
                 console.error('Error loading user data:', error);
             }
@@ -2053,11 +2577,9 @@
 
         // Check if user has borrowed a specific book
         UI.hasUserBorrowedBook = (bookId) => {
-            const hasBorrowed = App.userCheckouts.some(checkout => 
+            return App.userCheckouts.some(checkout => 
                 checkout.book_id === bookId && !checkout.is_returned
             );
-            console.log(`Checking if user borrowed book ${bookId}:`, hasBorrowed, 'Checkouts:', App.userCheckouts);
-            return hasBorrowed;
         };
 
         // Check if user has reviewed a specific book
@@ -2390,7 +2912,7 @@
                 <div class="container my-4">
                     <div class="row">
                         <div class="col-12">
-                            <button class="btn btn-outline-secondary mb-3" onclick="UI.showDashboard()">
+                            <button class="btn btn-outline-secondary mb-3 back-to-dashboard-btn">
                                 <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
                             </button>
                         </div>
@@ -2416,7 +2938,7 @@
                             <i class="fas fa-book-open fa-3x text-muted mb-3"></i>
                             <h5>No checkouts found</h5>
                             <p class="text-muted">You haven't borrowed any books yet.</p>
-                            <button class="btn btn-primary" onclick="UI.showBooksPage()">
+                            <button class="btn btn-primary browse-books-btn">
                                 <i class="fas fa-search me-2"></i>Browse Books
                             </button>
                         </div>
@@ -2473,7 +2995,7 @@
                                             </small>
                                         ` : ''}
                                         <br>
-                                        <button class="btn btn-warning btn-sm mt-2" onclick="UI.showReturnModal(${checkout.book_id}, '${checkout.title}')">
+                                        <button class="btn btn-warning btn-sm mt-2 return-btn" data-book-id="${checkout.book_id}" data-book-title="${checkout.title}">
                                             <i class="fas fa-undo me-1"></i>Return Book
                                         </button>
                                     `}

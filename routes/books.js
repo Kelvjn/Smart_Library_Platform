@@ -321,8 +321,8 @@ router.get('/:id', optionalAuth, async (req, res) => {
             LIMIT 5
         `, [bookId]);
         
-        // Check availability using function
-        const isAvailable = await callFunction('IsBookAvailable', [bookId]);
+        // Check availability using available_copies
+        const isAvailable = book.available_copies > 0 && book.is_active;
         
         // Get similar books (same genre, excluding current book)
         const [similarBooks] = await connection.execute(`
