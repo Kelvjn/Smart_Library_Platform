@@ -53,31 +53,73 @@ router.post('/', authenticate, async (req, res) => {
             });
         }
         
-        // Call stored procedure to add review
+        // Implement review creation with a safe transaction (no stored procedure)
         try {
-            const [results] = await connection.execute(
-                'CALL ReviewBook(?, ?, ?, ?, @result, @review_id)',
-                [user_id, bookId, userRating, comment || null]
+            await connection.beginTransaction();
+
+            // Ensure the book exists and is active
+            const [bookRows] = await connection.execute(
+                'SELECT book_id, average_rating, total_reviews FROM books WHERE book_id = ? AND is_active = TRUE',
+                [bookId]
             );
-            
-            // Get the output parameters
-            const [[{ '@result': result, '@review_id': reviewId }]] = await connection.execute(
-                'SELECT @result, @review_id'
-            );
-            
-            if (result.startsWith('Error:')) {
-                const statusCode = result.includes('already reviewed') ? 409 : 
-                                  result.includes('not found') ? 404 :
-                                  result.includes('must borrow') ? 403 : 400;
-                
-                return res.status(statusCode).json({
+            if (bookRows.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({
                     error: {
-                        message: result,
-                        code: 'REVIEW_FAILED'
+                        message: 'Error: book not found',
+                        code: 'BOOK_NOT_FOUND'
                     }
                 });
             }
-            
+
+            // Ensure the user has borrowed this book at least once
+            const [borrowCheck] = await connection.execute(
+                'SELECT 1 FROM checkouts WHERE user_id = ? AND book_id = ? LIMIT 1',
+                [user_id, bookId]
+            );
+            if (borrowCheck.length === 0) {
+                await connection.rollback();
+                return res.status(403).json({
+                    error: {
+                        message: 'Error: user must borrow this book before reviewing',
+                        code: 'MUST_BORROW_FIRST'
+                    }
+                });
+            }
+
+            // Ensure the user hasn't already reviewed this book
+            const [existing] = await connection.execute(
+                'SELECT review_id FROM reviews WHERE user_id = ? AND book_id = ? LIMIT 1',
+                [user_id, bookId]
+            );
+            if (existing.length > 0) {
+                await connection.rollback();
+                return res.status(409).json({
+                    error: {
+                        message: 'Error: user has already reviewed this book',
+                        code: 'ALREADY_REVIEWED'
+                    }
+                });
+            }
+
+            // Insert the review
+            const [insertRes] = await connection.execute(
+                'INSERT INTO reviews (user_id, book_id, rating, comment, review_date, helpful_votes) VALUES (?, ?, ?, ?, NOW(), 0)',
+                [user_id, bookId, userRating, comment || null]
+            );
+            const reviewId = insertRes.insertId;
+
+            // Update book aggregates
+            await connection.execute(
+                `UPDATE books 
+                 SET total_reviews = COALESCE(total_reviews, 0) + 1,
+                     average_rating = ROUND(((COALESCE(average_rating, 0) * COALESCE(total_reviews, 0)) + ?) / (COALESCE(total_reviews, 0) + 1), 2)
+                 WHERE book_id = ?`,
+                [userRating, bookId]
+            );
+
+            await connection.commit();
+
             // Get the created review with user info
             const [reviewDetails] = await connection.execute(`
                 SELECT 
@@ -95,23 +137,25 @@ router.post('/', authenticate, async (req, res) => {
                 JOIN users u ON r.user_id = u.user_id
                 WHERE r.review_id = ?
             `, [reviewId]);
-            
-            res.status(201).json({
+
+            return res.status(201).json({
                 message: 'Review added successfully',
                 review: {
                     ...reviewDetails[0],
-                    reviewer_name: reviewDetails[0].first_name && reviewDetails[0].last_name 
-                        ? `${reviewDetails[0].first_name} ${reviewDetails[0].last_name}` 
+                    reviewer_name: reviewDetails[0].first_name && reviewDetails[0].last_name
+                        ? `${reviewDetails[0].first_name} ${reviewDetails[0].last_name}`
                         : reviewDetails[0].username
                 }
             });
-            
-        } catch (procedureError) {
-            console.error('Review procedure error:', procedureError);
+
+        } catch (txError) {
+            await connection.rollback();
+            console.error('Review transaction error:', txError);
             return res.status(500).json({
                 error: {
                     message: 'Failed to process review',
-                    code: 'PROCEDURE_ERROR'
+                    code: 'TRANSACTION_ERROR',
+                    details: txError.message
                 }
             });
         }
@@ -275,7 +319,7 @@ router.get('/user', authenticate, async (req, res) => {
                 b.title as book_title,
                 b.cover_image_url,
                 GROUP_CONCAT(
-                    CONCAT(a.first_name, ' ', a.last_name) 
+                    CONCAT(a.first_name, ' ', a.last_name)
                     ORDER BY ba.author_order 
                     SEPARATOR ', '
                 ) as authors

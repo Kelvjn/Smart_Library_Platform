@@ -1,6 +1,6 @@
 // Smart Library Platform - Checkouts Routes
 const express = require('express');
-const { getMySQLConnection, callStoredProcedure, callFunction } = require('../config/database');
+const { getMySQLConnection, callFunction } = require('../config/database');
 const { authenticate, requireStaff, verifyOwnership } = require('../middleware/auth');
 
 const router = express.Router();
@@ -10,7 +10,7 @@ router.post('/borrow', authenticate, async (req, res) => {
     const connection = await getMySQLConnection();
     
     try {
-        const { book_id, loan_period_days = 14 } = req.body;
+        const { book_id, loan_period_days = 14, due_date } = req.body;
         const user_id = req.user.user_id;
         const staff_id = req.user.user_type === 'staff' || req.user.user_type === 'admin' ? req.user.user_id : 2; // Default staff user
         
@@ -35,17 +35,59 @@ router.post('/borrow', authenticate, async (req, res) => {
             });
         }
         
-        if (isNaN(loanPeriod) || loanPeriod < 1 || loanPeriod > 30) {
-            return res.status(400).json({
+        // Validate target due date (either provided as due_date or derived from loanPeriod)
+        let targetDueDate;
+        if (due_date) {
+            const parsed = new Date(due_date);
+            if (isNaN(parsed.getTime())) {
+                return res.status(400).json({
+                    error: {
+                        message: 'Invalid due date',
+                        code: 'INVALID_DUE_DATE'
+                    }
+                });
+            }
+            const now = new Date();
+            const diffDays = Math.ceil((parsed.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            if (diffDays < 1 || diffDays > 30) {
+                return res.status(400).json({
+                    error: {
+                        message: 'Due date must be within 1 to 30 days from today',
+                        code: 'INVALID_DUE_DATE_RANGE'
+                    }
+                });
+            }
+            targetDueDate = parsed;
+        } else {
+            if (isNaN(loanPeriod) || loanPeriod < 1 || loanPeriod > 30) {
+                return res.status(400).json({
+                    error: {
+                        message: 'Loan period must be between 1 and 30 days',
+                        code: 'INVALID_LOAN_PERIOD'
+                    }
+                });
+            }
+            const tmp = new Date();
+            tmp.setDate(tmp.getDate() + loanPeriod);
+            targetDueDate = tmp;
+        }
+        
+        // Check if book is available
+        const [bookCheck] = await connection.execute(
+            'SELECT available_copies, is_active FROM books WHERE book_id = ?',
+            [bookId]
+        );
+        
+        if (bookCheck.length === 0) {
+            return res.status(404).json({
                 error: {
-                    message: 'Loan period must be between 1 and 30 days',
-                    code: 'INVALID_LOAN_PERIOD'
+                    message: 'Book not found',
+                    code: 'BOOK_NOT_FOUND'
                 }
             });
         }
         
-        // Check if book is available
-        const isAvailable = await callFunction('IsBookAvailable', [bookId]);
+        const isAvailable = bookCheck[0].available_copies > 0 && bookCheck[0].is_active;
         
         if (!isAvailable) {
             return res.status(409).json({
@@ -56,8 +98,14 @@ router.post('/borrow', authenticate, async (req, res) => {
             });
         }
         
-        // Check user's current checkout limit
-        const canBorrow = await callFunction('CanUserBorrowMore', [user_id, 5]);
+        // Check user's current checkout limit (max 5 books)
+        const [checkoutCount] = await connection.execute(
+            'SELECT COUNT(*) as active_checkouts FROM checkouts WHERE user_id = ? AND is_returned = FALSE',
+            [user_id]
+        );
+        
+        const maxBooks = 5;
+        const canBorrow = checkoutCount[0].active_checkouts < maxBooks;
         
         if (!canBorrow) {
             return res.status(409).json({
@@ -68,26 +116,44 @@ router.post('/borrow', authenticate, async (req, res) => {
             });
         }
         
-        // Call stored procedure to borrow book
+        // Use transaction to borrow book safely
         try {
-            const [results] = await connection.execute(
-                'CALL BorrowBook(?, ?, ?, ?, @result, @checkout_id)',
-                [user_id, bookId, staff_id, loanPeriod]
+            await connection.beginTransaction();
+            
+            // Double-check availability in transaction
+            const [bookRecheck] = await connection.execute(
+                'SELECT available_copies FROM books WHERE book_id = ? FOR UPDATE',
+                [bookId]
             );
             
-            // Get the output parameters
-            const [[{ '@result': result, '@checkout_id': checkoutId }]] = await connection.execute(
-                'SELECT @result, @checkout_id'
-            );
-            
-            if (result.startsWith('Error:')) {
+            if (bookRecheck[0].available_copies < 1) {
+                await connection.rollback();
                 return res.status(409).json({
                     error: {
-                        message: result,
-                        code: 'BORROW_FAILED'
+                        message: 'Book is no longer available',
+                        code: 'BOOK_NOT_AVAILABLE'
                     }
                 });
             }
+            
+            // Use validated target due date
+            const dueDate = targetDueDate;
+            
+            // Insert checkout record
+            const [insertResult] = await connection.execute(`
+                INSERT INTO checkouts (user_id, book_id, staff_checkout_id, checkout_date, due_date) 
+                VALUES (?, ?, ?, NOW(), ?)
+            `, [user_id, bookId, staff_id, dueDate]);
+            
+            const checkoutId = insertResult.insertId;
+            
+            // Update book availability
+            await connection.execute(
+                'UPDATE books SET available_copies = available_copies - 1 WHERE book_id = ?',
+                [bookId]
+            );
+            
+            await connection.commit();
             
             // Get checkout details
             const [checkoutDetails] = await connection.execute(`
@@ -118,12 +184,14 @@ router.post('/borrow', authenticate, async (req, res) => {
                 }
             });
             
-        } catch (procedureError) {
-            console.error('Stored procedure error:', procedureError);
+        } catch (transactionError) {
+            await connection.rollback();
+            console.error('Transaction error during book borrowing:', transactionError);
             return res.status(500).json({
                 error: {
                     message: 'Failed to process book borrowing',
-                    code: 'PROCEDURE_ERROR'
+                    code: 'TRANSACTION_ERROR',
+                    details: transactionError.message
                 }
             });
         }
@@ -134,6 +202,162 @@ router.post('/borrow', authenticate, async (req, res) => {
             error: {
                 message: 'Failed to borrow book',
                 code: 'BORROW_ERROR'
+            }
+        });
+    } finally {
+        connection.release();
+    }
+});
+
+// POST /api/checkouts/return - Return a book by book_id
+router.post('/return', authenticate, async (req, res) => {
+    const connection = await getMySQLConnection();
+    
+    try {
+        const { book_id, checkout_id } = req.body;
+        const user_id = req.user.user_id;
+        const staff_id = req.user.user_type === 'staff' || req.user.user_type === 'admin' ? req.user.user_id : 2;
+        
+        if (!book_id && !checkout_id) {
+            return res.status(400).json({
+                error: {
+                    message: 'Book ID or checkout ID is required',
+                    code: 'MISSING_IDENTIFIER'
+                }
+            });
+        }
+        
+        const bookId = book_id ? parseInt(book_id) : null;
+        
+        if (bookId !== null && (isNaN(bookId) || bookId <= 0)) {
+            return res.status(400).json({
+                error: {
+                    message: 'Invalid book ID',
+                    code: 'INVALID_BOOK_ID'
+                }
+            });
+        }
+        
+        // Find the active checkout for this user
+        let activeCheckoutRow;
+        if (checkout_id) {
+            const [rows] = await connection.execute(
+                'SELECT checkout_id, book_id, due_date FROM checkouts WHERE checkout_id = ? AND user_id = ? AND is_returned = FALSE',
+                [parseInt(checkout_id), user_id]
+            );
+            activeCheckoutRow = rows[0];
+        } else {
+            const [rows] = await connection.execute(`
+                SELECT checkout_id, due_date, book_id
+                FROM checkouts 
+                WHERE user_id = ? AND book_id = ? AND is_returned = FALSE 
+                ORDER BY checkout_date DESC 
+                LIMIT 1
+            `, [user_id, bookId]);
+            activeCheckoutRow = rows[0];
+        }
+        
+        if (!activeCheckoutRow) {
+            return res.status(404).json({
+                error: {
+                    message: 'No active checkout found for this book',
+                    code: 'CHECKOUT_NOT_FOUND'
+                }
+            });
+        }
+        
+        const checkout = activeCheckoutRow;
+        const checkoutId = checkout.checkout_id;
+        const effectiveBookId = checkout.book_id || bookId;
+        
+        // Use transaction to return book safely
+        try {
+            await connection.beginTransaction();
+
+            // Lock the checkout row for this user to prevent double-return
+            const [lockRows] = await connection.execute(
+                'SELECT due_date, return_date FROM checkouts WHERE checkout_id = ? AND user_id = ? FOR UPDATE',
+                [checkoutId, user_id]
+            );
+            if (lockRows.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({
+                    error: {
+                        message: 'Checkout not found',
+                        code: 'CHECKOUT_NOT_FOUND'
+                    }
+                });
+            }
+            if (lockRows[0].return_date) {
+                await connection.rollback();
+                return res.status(409).json({
+                    error: {
+                        message: 'Checkout already returned',
+                        code: 'ALREADY_RETURNED'
+                    }
+                });
+            }
+
+            // Calculate if return is late
+            const dueDate = new Date(lockRows[0].due_date);
+            const returnDate = new Date();
+            const isLate = returnDate > dueDate;
+            const lateFee = isLate ? Math.ceil((returnDate - dueDate) / (1000 * 60 * 60 * 24)) * 0.50 : 0; // $0.50 per day
+
+            // Update checkout record (do not touch inventory here; trigger handles it)
+            await connection.execute(`
+                UPDATE checkouts 
+                SET return_date = NOW(), 
+                    is_returned = TRUE, 
+                    is_late = ?, 
+                    late_fee = ?,
+                    staff_return_id = ?
+                WHERE checkout_id = ? AND is_returned = FALSE
+            `, [isLate, lateFee, staff_id, checkoutId]);
+
+            await connection.commit();
+            
+            // Get return details
+            const [returnDetails] = await connection.execute(`
+                SELECT 
+                    c.checkout_id,
+                    c.checkout_date,
+                    c.due_date,
+                    c.return_date,
+                    c.is_late,
+                    c.late_fee,
+                    b.title,
+                    b.isbn
+                FROM checkouts c
+                JOIN books b ON c.book_id = b.book_id
+                WHERE c.checkout_id = ?
+            `, [checkoutId]);
+            
+            res.status(200).json({
+                message: isLate ? 'Book returned successfully (late return)' : 'Book returned successfully',
+                is_late: isLate,
+                late_fee: lateFee,
+                return: returnDetails[0]
+            });
+            
+        } catch (transactionError) {
+            await connection.rollback();
+            console.error('Transaction error during book return:', transactionError);
+            return res.status(500).json({
+                error: {
+                    message: 'Failed to process book return',
+                    code: 'TRANSACTION_ERROR',
+                    details: transactionError.message
+                }
+            });
+        }
+        
+    } catch (error) {
+        console.error('Return book error:', error);
+        res.status(500).json({
+            error: {
+                message: 'Failed to return book',
+                code: 'RETURN_ERROR'
             }
         });
     } finally {
@@ -300,7 +524,7 @@ router.get('/user', authenticate, async (req, res) => {
                 b.isbn,
                 b.cover_image_url,
                 GROUP_CONCAT(
-                    CONCAT(a.first_name, ' ', a.last_name) 
+                    CONCAT(a.first_name, ' ', a.last_name)
                     ORDER BY ba.author_order 
                     SEPARATOR ', '
                 ) as authors,

@@ -102,7 +102,7 @@ router.get('/', optionalAuth, async (req, res) => {
                 b.total_reviews,
                 b.total_borrowed,
                 GROUP_CONCAT(
-                    CONCAT(a.first_name, ' ', a.last_name) 
+                    CONCAT(a.first_name, ' ', a.last_name)
                     ORDER BY ba.author_order 
                     SEPARATOR ', '
                 ) as authors,
@@ -201,7 +201,7 @@ router.get('/popular', optionalAuth, async (req, res) => {
                 b.total_reviews,
                 COUNT(c.checkout_id) as recent_checkouts,
                 GROUP_CONCAT(
-                    CONCAT(a.first_name, ' ', a.last_name) 
+                    CONCAT(a.first_name, ' ', a.last_name)
                     ORDER BY ba.author_order 
                     SEPARATOR ', '
                 ) as authors
@@ -252,25 +252,45 @@ router.get('/:id', optionalAuth, async (req, res) => {
             });
         }
         
-        // Get book details with authors
+        // Get comprehensive book details with authors
         const [books] = await connection.execute(`
             SELECT 
                 b.book_id,
                 b.title,
                 b.isbn,
+                b.isbn13,
+                b.isbn10,
                 b.publisher,
                 b.publication_date,
+                b.first_published_date,
+                b.copyright_date,
                 b.genre,
                 b.language,
                 b.pages,
                 b.description,
                 b.total_copies,
                 b.available_copies,
+                b.is_active,
                 b.is_ebook,
                 b.cover_image_url,
                 b.average_rating,
                 b.total_reviews,
                 b.total_borrowed,
+                b.series_name,
+                b.series_order,
+                b.part_of_series,
+                b.original_title,
+                b.translated_from,
+                b.translator,
+                b.edition,
+                b.format_type,
+                b.dimensions,
+                b.awards,
+                b.age_rating,
+                b.content_warnings,
+                b.country_of_origin,
+                b.sequel_to,
+                b.prequel_to,
                 b.created_at,
                 b.updated_at
             FROM books b
@@ -324,7 +344,55 @@ router.get('/:id', optionalAuth, async (req, res) => {
         // Check availability using available_copies
         const isAvailable = book.available_copies > 0 && book.is_active;
         
-        // Get similar books (same genre, excluding current book)
+        // Get sequel/prequel information
+        const [sequelPrequel] = await connection.execute(`
+            SELECT 
+                sequel.book_id as sequel_id,
+                sequel.title as sequel_title,
+                sequel.cover_image_url as sequel_cover,
+                prequel.book_id as prequel_id,
+                prequel.title as prequel_title,
+                prequel.cover_image_url as prequel_cover
+            FROM books b
+            LEFT JOIN books sequel ON b.sequel_to = sequel.book_id
+            LEFT JOIN books prequel ON b.prequel_to = prequel.book_id
+            WHERE b.book_id = ?
+        `, [bookId]);
+        
+        // Get series books if part of a series
+        let seriesBooks = [];
+        if (book.series_name) {
+            const [series] = await connection.execute(`
+                SELECT 
+                    b.book_id,
+                    b.title,
+                    b.series_order,
+                    b.cover_image_url,
+                    b.publication_date,
+                    GROUP_CONCAT(
+                        CONCAT(a.first_name, ' ', a.last_name)
+                        ORDER BY ba.author_order 
+                        SEPARATOR ', '
+                    ) as authors
+                FROM books b
+                LEFT JOIN book_authors ba ON b.book_id = ba.book_id
+                LEFT JOIN authors a ON ba.author_id = a.author_id
+                WHERE b.series_name = ? AND b.is_active = TRUE
+                GROUP BY b.book_id
+                ORDER BY COALESCE(b.series_order, 999), b.publication_date
+            `, [book.series_name]);
+            
+            seriesBooks = series.map(seriesBook => ({
+                ...seriesBook,
+                authors: seriesBook.authors ? seriesBook.authors.split(', ') : [],
+                is_current: seriesBook.book_id === bookId
+            }));
+        }
+        
+        // Get similar books (same genre, excluding current book and series books)
+        const seriesBookIds = seriesBooks.map(sb => sb.book_id);
+        const excludeIds = [bookId, ...seriesBookIds].join(',');
+        
         const [similarBooks] = await connection.execute(`
             SELECT 
                 b.book_id,
@@ -332,33 +400,78 @@ router.get('/:id', optionalAuth, async (req, res) => {
                 b.cover_image_url,
                 b.average_rating,
                 GROUP_CONCAT(
-                    CONCAT(a.first_name, ' ', a.last_name) 
+                    CONCAT(a.first_name, ' ', a.last_name)
                     ORDER BY ba.author_order 
                     SEPARATOR ', '
                 ) as authors
             FROM books b
             LEFT JOIN book_authors ba ON b.book_id = ba.book_id
             LEFT JOIN authors a ON ba.author_id = a.author_id
-            WHERE b.genre = ? AND b.book_id != ? AND b.is_active = TRUE
+            WHERE b.genre = ? AND b.book_id NOT IN (${excludeIds}) AND b.is_active = TRUE
             GROUP BY b.book_id
             ORDER BY b.average_rating DESC, b.total_borrowed DESC
             LIMIT 5
-        `, [book.genre, bookId]);
+        `, [book.genre]);
         
         res.json({
             book: {
                 ...book,
                 authors: authors.map(author => ({
                     author_id: author.author_id,
-                    name: `${author.first_name} ${author.last_name}`,
-                    first_name: author.first_name,
-                    last_name: author.last_name,
-                    biography: author.biography,
-                    nationality: author.nationality,
+                    name: author.name,
                     order: author.author_order
                 })),
                 is_available: Boolean(isAvailable),
-                availability_status: isAvailable ? 'available' : 'unavailable'
+                availability_status: isAvailable ? 'available' : 'unavailable',
+                // Add sequel/prequel information
+                sequel: sequelPrequel[0]?.sequel_id ? {
+                    book_id: sequelPrequel[0].sequel_id,
+                    title: sequelPrequel[0].sequel_title,
+                    cover_image_url: sequelPrequel[0].sequel_cover
+                } : null,
+                prequel: sequelPrequel[0]?.prequel_id ? {
+                    book_id: sequelPrequel[0].prequel_id,
+                    title: sequelPrequel[0].prequel_title,
+                    cover_image_url: sequelPrequel[0].prequel_cover
+                } : null,
+                // Enhanced metadata display formatting
+                metadata: {
+                    identifiers: {
+                        isbn: book.isbn,
+                        isbn13: book.isbn13,
+                        isbn10: book.isbn10
+                    },
+                    publication: {
+                        publisher: book.publisher,
+                        publication_date: book.publication_date,
+                        first_published_date: book.first_published_date,
+                        copyright_date: book.copyright_date,
+                        country_of_origin: book.country_of_origin
+                    },
+                    physical: {
+                        format: book.format_type,
+                        pages: book.pages,
+                        dimensions: book.dimensions,
+                        language: book.language
+                    },
+                    content: {
+                        genre: book.genre,
+                        age_rating: book.age_rating,
+                        content_warnings: book.content_warnings,
+                        awards: book.awards
+                    },
+                    translation: book.translated_from ? {
+                        original_title: book.original_title,
+                        translated_from: book.translated_from,
+                        translator: book.translator
+                    } : null,
+                    series: book.part_of_series ? {
+                        series_name: book.series_name,
+                        series_order: book.series_order,
+                        total_books_in_series: seriesBooks.length
+                    } : null,
+                    edition: book.edition
+                }
             },
             reviews: reviews.map(review => ({
                 ...review,
@@ -366,6 +479,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
                     ? `${review.first_name} ${review.last_name}` 
                     : review.username
             })),
+            series_books: seriesBooks,
             similar_books: similarBooks.map(similar => ({
                 ...similar,
                 authors: similar.authors ? similar.authors.split(', ') : []
@@ -499,7 +613,7 @@ router.get('/search/advanced', optionalAuth, async (req, res) => {
                 b.total_reviews,
                 b.total_borrowed,
                 GROUP_CONCAT(
-                    CONCAT(a.first_name, ' ', a.last_name) 
+                    CONCAT(a.first_name, ' ', a.last_name)
                     ORDER BY ba.author_order 
                     SEPARATOR ', '
                 ) as authors

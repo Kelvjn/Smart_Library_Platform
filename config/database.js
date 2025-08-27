@@ -6,8 +6,8 @@ require('dotenv').config();
 // MySQL Connection Pool Configuration
 const mysqlConfig = {
     host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'library_user',
-    password: process.env.DB_PASSWORD || 'library_password',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '1192004',
     database: process.env.DB_NAME || 'smart_library',
     port: process.env.DB_PORT || 3306,
     waitForConnections: true,

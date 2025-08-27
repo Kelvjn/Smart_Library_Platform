@@ -34,11 +34,7 @@ CREATE TABLE users (
 -- Authors table
 CREATE TABLE authors (
     author_id INT PRIMARY KEY AUTO_INCREMENT,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
-    biography TEXT,
-    birth_date DATE,
-    nationality VARCHAR(50),
+    name VARCHAR(100) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -153,7 +149,7 @@ CREATE INDEX idx_books_title ON books(title);
 CREATE INDEX idx_books_genre ON books(genre);
 CREATE INDEX idx_books_publisher ON books(publisher);
 CREATE INDEX idx_books_active_available ON books(is_active, available_copies);
-CREATE INDEX idx_authors_name ON authors(last_name, first_name);
+CREATE INDEX idx_authors_name ON authors(name);
 
 -- Report optimization
 CREATE INDEX idx_checkouts_date_range ON checkouts(checkout_date, is_returned);
@@ -166,7 +162,7 @@ CREATE INDEX idx_checkout_analytics ON checkouts(book_id, checkout_date, is_retu
 
 -- Full-text search index for book search
 ALTER TABLE books ADD FULLTEXT(title, description);
-ALTER TABLE authors ADD FULLTEXT(first_name, last_name);
+ALTER TABLE authors ADD FULLTEXT(name);
 
 -- Insert sample data for testing
 -- Sample users
@@ -177,12 +173,12 @@ INSERT INTO users (username, email, password_hash, first_name, last_name, user_t
 ('reader2', 'reader2@library.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Alice', 'Johnson', 'reader');
 
 -- Sample authors
-INSERT INTO authors (first_name, last_name, biography, nationality) VALUES
-('George', 'Orwell', 'English novelist and journalist', 'British'),
-('Jane', 'Austen', 'English novelist known for her wit and social commentary', 'British'),
-('Mark', 'Twain', 'American writer and humorist', 'American'),
-('Virginia', 'Woolf', 'English writer and modernist', 'British'),
-('Ernest', 'Hemingway', 'American novelist and journalist', 'American');
+INSERT INTO authors (name) VALUES
+('George Orwell'),
+('Jane Austen'),
+('Mark Twain'),
+('Virginia Woolf'),
+('Ernest Hemingway');
 
 -- Sample books
 INSERT INTO books (title, isbn, publisher, publication_date, genre, pages, description, total_copies, available_copies, is_ebook) VALUES

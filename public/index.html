@@ -459,14 +459,14 @@
     </main>
 
     <!-- Login Modal -->
-    <div class="modal fade" id="loginModal" tabindex="-1">
+    <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">
+                    <h5 class="modal-title" id="loginModalLabel">
                         <i class="fas fa-sign-in-alt me-2"></i>Login to Your Account
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="loginForm">
@@ -489,14 +489,14 @@
     </div>
 
     <!-- Register Modal -->
-    <div class="modal fade" id="registerModal" tabindex="-1">
+    <div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">
+                    <h5 class="modal-title" id="registerModalLabel">
                         <i class="fas fa-user-plus me-2"></i>Create New Account
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="registerForm">
@@ -563,14 +563,14 @@
     </footer>
 
     <!-- Borrow Book Modal -->
-    <div class="modal fade" id="borrowModal" tabindex="-1">
+    <div class="modal fade" id="borrowModal" tabindex="-1" aria-labelledby="borrowModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">
+                    <h5 class="modal-title" id="borrowModalLabel">
                         <i class="fas fa-bookmark me-2"></i>Borrow Book
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="borrowForm">
@@ -580,14 +580,21 @@
                             <input type="text" class="form-control" id="borrowBookTitle" readonly>
                         </div>
                         <div class="mb-3">
-                            <label for="loanPeriod" class="form-label">Loan Period</label>
-                            <select class="form-select" id="loanPeriod" required>
-                                <option value="7">7 days</option>
-                                <option value="14" selected>14 days (Recommended)</option>
-                                <option value="21">21 days</option>
-                                <option value="30">30 days</option>
-                            </select>
-                            <div class="form-text">Choose how long you want to borrow this book.</div>
+                            <label class="form-label">Borrow Duration</label>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <select class="form-select" id="loanPeriod">
+                                        <option value="7">7 days</option>
+                                        <option value="14" selected>14 days</option>
+                                        <option value="21">21 days</option>
+                                        <option value="30">30 days</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <input type="date" class="form-control" id="dueDatePicker" />
+                                </div>
+                            </div>
+                            <div class="form-text">Pick either a duration or a due date (max 30 days).</div>
                         </div>
                         <div class="mb-3">
                             <div class="alert alert-info">
@@ -611,14 +618,14 @@
     </div>
 
     <!-- Return Book Modal -->
-    <div class="modal fade" id="returnModal" tabindex="-1">
+    <div class="modal fade" id="returnModal" tabindex="-1" aria-labelledby="returnModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">
+                    <h5 class="modal-title" id="returnModalLabel">
                         <i class="fas fa-undo me-2"></i>Return Book
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="returnForm">
@@ -647,14 +654,14 @@
     </div>
 
     <!-- Review Book Modal -->
-    <div class="modal fade" id="reviewModal" tabindex="-1">
+    <div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">
+                    <h5 class="modal-title" id="reviewModalLabel">
                         <i class="fas fa-star me-2"></i>Review Book
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="reviewForm">
@@ -1463,7 +1470,7 @@
                 document.getElementById('mainContent').innerHTML = `
                     <div class="container my-4">
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h2>Explore Books</h2>
+                        <h2>Explore Books</h2>
                             <button class="btn btn-outline-primary" id="advancedSearchToggle">
                                 <i class="fas fa-filter me-2"></i>Advanced Search
                             </button>
@@ -1832,100 +1839,279 @@
                     
                     const data = await Utils.makeRequest(`/books/${bookId}`);
                     const book = data.book;
+                    const reviews = data.reviews || [];
+                    const similarBooks = data.similar_books || [];
+                    const seriesBooks = data.series_books || [];
                     
                     document.getElementById('bookDetailsContainer').innerHTML = `
                         <div class="row">
+                            <!-- Book Cover and Actions -->
                             <div class="col-md-4">
-                                <img src="${book.cover_image_url || 'https://via.placeholder.com/300x400/f0f0f0/666?text=Loading...'}" 
-                                     class="img-fluid rounded book-cover book-cover-img" alt="${book.title}"
-                                     data-fallback="${UI.getPlaceholderImage(book.genre, '300x400')}"
-                                     loading="lazy">
-                                <div class="mt-3">
-
-
-                                    ${App.user ? `
-                                        ${book.is_available ? `
-                                            <button class="btn btn-success w-100 mb-2 borrow-btn" data-book-id="${book.book_id}" data-book-title="${book.title}">
-                                                <i class="fas fa-bookmark me-2"></i>Borrow Book
-                                            </button>
-                                        ` : `
-                                            <button class="btn btn-secondary w-100 mb-2" disabled>
-                                                <i class="fas fa-times me-2"></i>Not Available
-                                            </button>
-                                        `}
-                                        ${UI.hasUserBorrowedBook(book.book_id) ? `
-                                            <button class="btn btn-warning w-100 mb-2 return-btn" data-book-id="${book.book_id}" data-book-title="${book.title}">
-                                                <i class="fas fa-undo me-2"></i>Return Book
-                                            </button>
-                                        ` : ''}
-                                        ${UI.hasUserBorrowedBook(book.book_id) && !UI.hasUserReviewedBook(book.book_id) ? `
-                                            <button class="btn btn-info w-100 mb-2 review-btn" data-book-id="${book.book_id}" data-book-title="${book.title}">
-                                                <i class="fas fa-star me-2"></i>Review Book
-                                            </button>
-                                        ` : ''}
-                                    ` : `
-                                        <button class="btn btn-outline-primary w-100 mb-2" data-bs-toggle="modal" data-bs-target="#loginModal">
-                                            <i class="fas fa-sign-in-alt me-2"></i>Login to Borrow
+                                <div class="card">
+                                    <img src="${book.cover_image_url || 'https://via.placeholder.com/300x400/f0f0f0/666?text=Loading...'}" 
+                                         class="card-img-top book-cover book-cover-img" alt="${book.title}"
+                                         data-fallback="${UI.getPlaceholderImage(book.title, '300x400', book.genre)}"
+                                         loading="lazy">
+                                    <div class="card-body">
+                                        <div class="d-grid gap-2">
+                                    ${App.user && book.is_available ? `
+                                                <button class="btn btn-success borrow-btn" data-book-id="${book.book_id}" data-book-title="${book.title}">
+                                                    <i class="fas fa-book me-2"></i>Borrow Book
+                                                </button>
+                                            ` : !book.is_available ? `
+                                                <button class="btn btn-secondary" disabled>
+                                                    <i class="fas fa-times me-2"></i>Unavailable
+                                                </button>
+                                            ` : `
+                                                <button class="btn btn-outline-primary" disabled>
+                                                    <i class="fas fa-sign-in-alt me-2"></i>Login to Borrow
+                                                </button>
+                                            `}
+                                            
+                                            ${App.user && UI.hasUserBorrowedBook(book.book_id) ? `
+                                                <button class="btn btn-warning return-btn" data-book-id="${book.book_id}" data-book-title="${book.title}">
+                                                    <i class="fas fa-undo me-2"></i>Return Book
                                         </button>
-                                    `}
-                                    <div class="availability-badge ${book.is_available ? 'bg-success' : 'bg-danger'} text-white w-100 text-center py-2 rounded">
-                                        ${book.is_available ? `Available (${book.available_copies}/${book.total_copies})` : 'Not Available'}
+                                    ` : ''}
+                                            
+                                            ${App.user && UI.hasUserBorrowedBook(book.book_id) && !UI.hasUserReviewedBook(book.book_id) ? `
+                                                <button class="btn btn-info review-btn" data-book-id="${book.book_id}" data-book-title="${book.title}">
+                                                    <i class="fas fa-star me-2"></i>Write Review
+                                                </button>
+                                            ` : ''}
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-8">
-                                <h1>${book.title}</h1>
-                                <p class="text-muted h5">by ${book.authors.map(a => a.name).join(', ')}</p>
                                 
-                                <div class="rating mb-3">
-                                    ${Utils.generateStarRating(book.average_rating)}
-                                    <span class="ms-2">${book.average_rating.toFixed(1)} (${book.total_reviews} reviews)</span>
+                                <!-- Quick Info Card -->
+                                <div class="card mt-3">
+                                    <div class="card-header">
+                                        <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Quick Info</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row g-2">
+                                            <div class="col-12">
+                                                <strong>Availability:</strong> 
+                                                <span class="badge ${book.is_available ? 'bg-success' : 'bg-danger'}">
+                                                    ${book.is_available ? `Available (${book.available_copies}/${book.total_copies})` : 'Unavailable'}
+                                                </span>
+                                            </div>
+                                            <div class="col-12">
+                                                <strong>Rating:</strong> 
+                                                ${book.average_rating > 0 ? `
+                                                    <span class="text-warning">
+                                                        ${'★'.repeat(Math.round(book.average_rating))}${'☆'.repeat(5 - Math.round(book.average_rating))}
+                                                    </span>
+                                                    <small class="text-muted">(${book.total_reviews} reviews)</small>
+                                                ` : '<span class="text-muted">No ratings yet</span>'}
+                                            </div>
+                                            ${book.metadata && book.metadata.content && book.metadata.content.age_rating ? `
+                                                <div class="col-12">
+                                                    <strong>Age Rating:</strong> <span class="badge bg-info">${book.metadata.content.age_rating}</span>
+                                                </div>
+                                            ` : ''}
+                                            ${book.metadata && book.metadata.physical && book.metadata.physical.format ? `
+                                                <div class="col-12">
+                                                    <strong>Format:</strong> <span class="text-capitalize">${book.metadata.physical.format}</span>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
                                 </div>
-
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <strong>Publisher:</strong> ${book.publisher || 'Unknown'}
-                                    </div>
-                                    <div class="col-md-6">
-                                        <strong>Publication Date:</strong> ${book.publication_date ? Utils.formatDate(book.publication_date) : 'Unknown'}
-                                    </div>
-                                    <div class="col-md-6">
-                                        <strong>Genre:</strong> ${book.genre || 'Unknown'}
-                                    </div>
-                                    <div class="col-md-6">
-                                        <strong>Pages:</strong> ${book.pages || 'Unknown'}
-                                    </div>
-                                    <div class="col-md-6">
-                                        <strong>Language:</strong> ${book.language || 'Unknown'}
-                                    </div>
-                                    <div class="col-md-6">
-                                        <strong>Format:</strong> ${book.is_ebook ? 'eBook' : 'Physical Book'}
-                                    </div>
-                                </div>
-
+                            </div>
+                            
+                            <!-- Main Book Information -->
+                            <div class="col-md-8">
                                 <div class="mb-4">
-                                    <h5>Description</h5>
-                                    <p>${book.description || 'No description available.'}</p>
+                                    <h1 class="display-6">${book.title}</h1>
+                                    ${book.metadata && book.metadata.translation && book.metadata.translation.original_title ? `
+                                        <p class="text-muted fs-5">Original Title: <em>${book.metadata.translation.original_title}</em></p>
+                                    ` : ''}
+                                    <p class="fs-5 text-primary">by ${book.authors.map(author => author.name).join(', ')}</p>
+                                    
+                                    ${book.metadata && book.metadata.series ? `
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-bookmark me-2"></i>
+                                            <strong>Part of Series:</strong> ${book.metadata.series.series_name}
+                                            ${book.metadata.series.series_order ? ` (Book ${book.metadata.series.series_order})` : ''}
+                                            <small class="text-muted">- ${book.metadata.series.total_books_in_series} books in series</small>
+                                </div>
+                                    ` : ''}
+                                    
+                                    ${book.sequel || book.prequel ? `
+                                        <div class="alert alert-secondary">
+                                            <i class="fas fa-link me-2"></i>
+                                            <strong>Series Order:</strong>
+                                            ${book.prequel ? `<a href="#" class="view-details-btn text-decoration-none" data-book-id="${book.prequel.book_id}">← ${book.prequel.title}</a> | ` : ''}
+                                            <span class="fw-bold">${book.title}</span>
+                                            ${book.sequel ? ` | <a href="#" class="view-details-btn text-decoration-none" data-book-id="${book.sequel.book_id}">${book.sequel.title} →</a>` : ''}
+                                    </div>
+                                    ` : ''}
+                                    </div>
+                                
+                                <!-- Book Description -->
+                                ${book.description ? `
+                                    <div class="mb-4">
+                                        <h4><i class="fas fa-align-left me-2"></i>Description</h4>
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <p class="card-text">${book.description}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                
+                                <!-- Comprehensive Book Details -->
+                                <div class="mb-4">
+                                    <h4><i class="fas fa-info-circle me-2"></i>Book Details</h4>
+                                    <div class="row">
+                                        <!-- Publication Information -->
+                                    <div class="col-md-6">
+                                            <div class="card h-100">
+                                                <div class="card-header">
+                                                    <h6 class="mb-0"><i class="fas fa-calendar me-2"></i>Publication</h6>
+                                    </div>
+                                                <div class="card-body">
+                                                    ${book.publisher ? `<p><strong>Publisher:</strong> ${book.publisher}</p>` : ''}
+                                                    ${book.publication_date ? `<p><strong>Publication Date:</strong> ${Utils.formatDate(book.publication_date)}</p>` : ''}
+                                                    ${book.first_published_date && book.first_published_date !== book.publication_date ? `<p><strong>First Published:</strong> ${Utils.formatDate(book.first_published_date)}</p>` : ''}
+                                                    ${book.copyright_date ? `<p><strong>Copyright:</strong> ${Utils.formatDate(book.copyright_date)}</p>` : ''}
+                                                    ${book.country_of_origin ? `<p><strong>Country:</strong> ${book.country_of_origin}</p>` : ''}
+                                                    ${book.edition ? `<p><strong>Edition:</strong> ${book.edition}</p>` : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Physical Details -->
+                                    <div class="col-md-6">
+                                            <div class="card h-100">
+                                                <div class="card-header">
+                                                    <h6 class="mb-0"><i class="fas fa-book-open me-2"></i>Physical Details</h6>
+                                    </div>
+                                                <div class="card-body">
+                                                    ${book.pages ? `<p><strong>Pages:</strong> ${book.pages}</p>` : ''}
+                                                    ${book.format_type ? `<p><strong>Format:</strong> <span class="text-capitalize">${book.format_type}</span></p>` : ''}
+                                                    ${book.language ? `<p><strong>Language:</strong> ${book.language}</p>` : ''}
+                                                    ${book.dimensions ? `<p><strong>Dimensions:</strong> ${book.dimensions}</p>` : ''}
+                                                    ${book.genre ? `<p><strong>Genre:</strong> <span class="badge bg-primary">${book.genre}</span></p>` : ''}
+                                                    ${book.is_ebook ? `<p><span class="badge bg-success"><i class="fas fa-tablet-alt me-1"></i>E-book Available</span></p>` : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Identifiers Row -->
+                                    <div class="row mt-3">
+                                    <div class="col-md-6">
+                                            <div class="card">
+                                                <div class="card-header">
+                                                    <h6 class="mb-0"><i class="fas fa-barcode me-2"></i>Identifiers</h6>
+                                    </div>
+                                                <div class="card-body">
+                                                    ${book.isbn13 ? `<p><strong>ISBN-13:</strong> <code>${book.isbn13}</code></p>` : ''}
+                                                    ${book.isbn10 ? `<p><strong>ISBN-10:</strong> <code>${book.isbn10}</code></p>` : ''}
+                                                    ${book.isbn && !book.isbn13 && !book.isbn10 ? `<p><strong>ISBN:</strong> <code>${book.isbn}</code></p>` : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Awards and Recognition -->
+                                        ${book.awards || book.content_warnings ? `
+                                    <div class="col-md-6">
+                                                <div class="card">
+                                                    <div class="card-header">
+                                                        <h6 class="mb-0"><i class="fas fa-award me-2"></i>Additional Info</h6>
+                                    </div>
+                                                    <div class="card-body">
+                                                        ${book.awards ? `<p><strong>Awards:</strong> ${book.awards}</p>` : ''}
+                                                        ${book.content_warnings ? `
+                                                            <p><strong>Content Warnings:</strong></p>
+                                                            <div class="alert alert-warning py-2">
+                                                                <small><i class="fas fa-exclamation-triangle me-1"></i>${book.content_warnings}</small>
+                                                            </div>
+                                                        ` : ''}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ` : ''}
                                 </div>
 
+                                    <!-- Translation Information -->
+                                    ${book.translated_from ? `
+                                        <div class="row mt-3">
+                                            <div class="col-12">
+                                                <div class="card">
+                                                    <div class="card-header">
+                                                        <h6 class="mb-0"><i class="fas fa-language me-2"></i>Translation Information</h6>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        ${book.original_title ? `<p><strong>Original Title:</strong> <em>${book.original_title}</em></p>` : ''}
+                                                        ${book.translated_from ? `<p><strong>Translated from:</strong> ${book.translated_from}</p>` : ''}
+                                                        ${book.translator ? `<p><strong>Translator:</strong> ${book.translator}</p>` : ''}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+
+                                <!-- Author Information -->
                                 ${book.authors.length > 0 ? `
                                     <div class="mb-4">
-                                        <h5>Authors</h5>
+                                        <h4><i class="fas fa-user-edit me-2"></i>Author${book.authors.length > 1 ? 's' : ''}</h4>
+                                        <div class="row">
                                         ${book.authors.map(author => `
-                                            <div class="mb-2">
-                                                <strong>${author.name}</strong>
-                                                ${author.biography ? `<p class="text-muted small mb-0">${author.biography}</p>` : ''}
+                                                <div class="col-md-6 mb-3">
+                                                    <div class="card h-100">
+                                                        <div class="card-body">
+                                                            <h6 class="card-title">${author.name}</h6>
+                                                            ${author.nationality ? `<p class="text-muted small"><i class="fas fa-globe me-1"></i>${author.nationality}</p>` : ''}
+                                                            ${author.biography ? `<p class="card-text small">${author.biography}</p>` : ''}
+                                                        </div>
+                                                    </div>
                                             </div>
                                         `).join('')}
+                                        </div>
                                     </div>
                                 ` : ''}
                             </div>
                         </div>
+                        
+                        <!-- Series Books Section -->
+                        ${seriesBooks.length > 1 ? `
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h4><i class="fas fa-bookmark me-2"></i>Books in ${book.series_name} Series</h4>
+                                    <div class="row">
+                                        ${seriesBooks.map(seriesBook => `
+                                            <div class="col-md-2 col-sm-4 col-6 mb-3">
+                                                <div class="card h-100 ${seriesBook.is_current ? 'border-primary' : ''}">
+                                                    <img src="${seriesBook.cover_image_url || 'https://via.placeholder.com/150x200/f0f0f0/666?text=No+Cover'}" 
+                                                         class="card-img-top" alt="${seriesBook.title}" style="height: 200px; object-fit: cover;">
+                                                    <div class="card-body p-2">
+                                                        <h6 class="card-title small">${seriesBook.title}</h6>
+                                                        ${seriesBook.series_order ? `<small class="text-muted">Book ${seriesBook.series_order}</small><br>` : ''}
+                                                        <p class="card-text small text-muted">${seriesBook.authors.join(', ')}</p>
+                                                        ${seriesBook.is_current ? `
+                                                            <span class="badge bg-primary">Current Book</span>
+                                                        ` : `
+                                                            <button class="btn btn-outline-primary btn-sm view-details-btn" data-book-id="${seriesBook.book_id}">
+                                                                View Details
+                                                            </button>
+                                                        `}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
 
                         <!-- Reviews Section -->
                         <div class="row mt-5">
                             <div class="col-12">
-                                <h4>Reviews</h4>
+                                <h4><i class="fas fa-star me-2"></i>Reviews</h4>
                                 ${App.user ? `
                                     <div class="mb-3">
                                         <button class="btn btn-outline-primary add-review-btn" data-book-id="${book.book_id}">
@@ -1942,6 +2128,32 @@
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- Similar Books Section -->
+                        ${similarBooks.length > 0 ? `
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h4><i class="fas fa-books me-2"></i>Similar Books</h4>
+                                    <div class="row">
+                                        ${similarBooks.map(similar => `
+                                            <div class="col-md-2 col-sm-4 col-6 mb-3">
+                                                <div class="card h-100">
+                                                    <img src="${similar.cover_image_url || 'https://via.placeholder.com/150x200/f0f0f0/666?text=No+Cover'}" 
+                                                         class="card-img-top" alt="${similar.title}" style="height: 200px; object-fit: cover;">
+                                                    <div class="card-body p-2">
+                                                        <h6 class="card-title small">${similar.title}</h6>
+                                                        <p class="card-text small text-muted">${similar.authors.join(', ')}</p>
+                                                        <button class="btn btn-outline-primary btn-sm view-details-btn" data-book-id="${similar.book_id}">
+                                                            View Details
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
                     `;
 
                     // Load reviews
@@ -2070,24 +2282,24 @@
                                 </div>
                             </div>
 
-                                                         <div class="col-md-6">
-                                 <div class="card">
-                                     <div class="card-header">
-                                         <h5><i class="fas fa-star me-2"></i>Recent Reviews</h5>
-                                     </div>
-                                     <div class="card-body">
-                                         ${dashboard.recent_reviews.length === 0 ? 
-                                             '<p class="text-muted">No reviews yet.</p>' :
-                                             dashboard.recent_reviews.map(review => `
-                                                 <div class="mb-2 p-2 border rounded">
-                                                     <strong>${review.title}</strong>
-                                                     <div class="rating">
-                                                         ${Utils.generateStarRating(review.rating)}
-                                                     </div>
-                                                     <small class="text-muted">${Utils.formatDate(review.review_date)}</small>
-                                                 </div>
-                                             `).join('')
-                                         }
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-star me-2"></i>Recent Reviews</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        ${dashboard.recent_reviews.length === 0 ? 
+                                            '<p class="text-muted">No reviews yet.</p>' :
+                                            dashboard.recent_reviews.map(review => `
+                                                <div class="mb-2 p-2 border rounded">
+                                                    <strong>${review.title}</strong>
+                                                    <div class="rating">
+                                                        ${Utils.generateStarRating(review.rating)}
+                                                    </div>
+                                                    <small class="text-muted">${Utils.formatDate(review.review_date)}</small>
+                                                </div>
+                                            `).join('')
+                                        }
                                      </div>
                                  </div>
                              </div>
@@ -2125,9 +2337,9 @@
                                              `).join('')
                                          }
                                      </div>
-                                 </div>
-                             </div>
-                         </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     `;
                 } catch (error) {
@@ -2139,6 +2351,44 @@
 
         // Event Listeners
         document.addEventListener('DOMContentLoaded', () => {
+            // Modal focus management for accessibility
+            const modals = ['loginModal', 'registerModal', 'borrowModal', 'returnModal', 'reviewModal'];
+            
+            modals.forEach(modalId => {
+                const modalElement = document.getElementById(modalId);
+                if (modalElement) {
+                    modalElement.addEventListener('show.bs.modal', function () {
+                        // Ensure aria-hidden is removed when showing
+                        this.removeAttribute('aria-hidden');
+                    });
+                    
+                    modalElement.addEventListener('shown.bs.modal', function () {
+                        // Focus on the first input field when modal opens
+                        const firstInput = this.querySelector('input:not([type="hidden"]), textarea, select');
+                        if (firstInput) {
+                            firstInput.focus();
+                        }
+                    });
+                    
+                    modalElement.addEventListener('hide.bs.modal', function () {
+                        // Remove focus from modal elements before hiding
+                        const focusedElement = this.querySelector(':focus');
+                        if (focusedElement) {
+                            focusedElement.blur();
+                        }
+                    });
+                    
+                    modalElement.addEventListener('hidden.bs.modal', function () {
+                        // Ensure aria-hidden is properly set when hidden
+                        this.setAttribute('aria-hidden', 'true');
+                        // Remove any lingering focus issues
+                        if (document.activeElement && document.activeElement !== document.body) {
+                            document.activeElement.blur();
+                        }
+                    });
+                }
+            });
+            
             // Check authentication status
             Auth.checkAuth();
 
@@ -2204,27 +2454,37 @@
                     UI.toggleAdvancedSearch();
                 } else if (e.target.id === 'clearAllFilters' || e.target.closest('#clearAllFilters')) {
                     UI.clearAllFilters();
-                } else if (e.target.classList.contains('borrow-btn')) {
-                    const bookId = e.target.dataset.bookId;
-                    const bookTitle = e.target.dataset.bookTitle;
+                } else if (e.target.classList.contains('borrow-btn') || e.target.closest('.borrow-btn')) {
+                    const btn = e.target.closest('.borrow-btn') || e.target;
+                    const bookId = btn.dataset.bookId;
+                    const bookTitle = btn.dataset.bookTitle;
                     UI.showBorrowModal(bookId, bookTitle);
-                } else if (e.target.classList.contains('return-btn')) {
-                    const bookId = e.target.dataset.bookId;
-                    const bookTitle = e.target.dataset.bookTitle;
+                } else if (e.target.classList.contains('return-btn') || e.target.closest('.return-btn')) {
+                    const btn = e.target.closest('.return-btn') || e.target;
+                    const bookId = btn.dataset.bookId;
+                    const bookTitle = btn.dataset.bookTitle;
                     UI.showReturnModal(bookId, bookTitle);
-                } else if (e.target.classList.contains('review-btn')) {
-                    const bookId = e.target.dataset.bookId;
-                    const bookTitle = e.target.dataset.bookTitle;
+                } else if (e.target.classList.contains('review-btn') || e.target.closest('.review-btn')) {
+                    const btn = e.target.closest('.review-btn') || e.target;
+                    const bookId = btn.dataset.bookId;
+                    const bookTitle = btn.dataset.bookTitle;
                     UI.showReviewModal(bookId, bookTitle);
                 } else if (e.target.id === 'backToBooksBtn') {
                     UI.showBooksPage();
-                } else if (e.target.classList.contains('view-details-btn')) {
-                    const bookId = e.target.dataset.bookId;
+                } else if (e.target.classList.contains('view-details-btn') || e.target.closest('.view-details-btn')) {
+                    const btn = e.target.closest('.view-details-btn') || e.target;
+                    const bookId = btn.dataset.bookId;
                     UI.showBookDetails(bookId);
                 } else if (e.target.classList.contains('explore-books-btn')) {
                     UI.showBooksPage();
                 } else if (e.target.classList.contains('hero-dashboard-btn')) {
                     UI.showDashboard();
+                } else if (e.target.id === 'navCheckouts' || e.target.closest('#navCheckouts')) {
+                    e.preventDefault();
+                    UI.showAllCheckouts();
+                } else if (e.target.id === 'navReviews' || e.target.closest('#navReviews')) {
+                    e.preventDefault();
+                    UI.showMyReviews();
                 } else if (e.target.classList.contains('pagination-btn')) {
                     e.preventDefault();
                     const enabled = e.target.dataset.enabled;
@@ -2291,25 +2551,7 @@
         });
 
         // Additional UI functions
-        UI.borrowBook = async (bookId) => {
-            if (!App.user) {
-                Utils.showAlert('Please log in to borrow books.', 'warning');
-                return;
-            }
-
-            try {
-                await Utils.makeRequest('/checkouts/borrow', {
-                    method: 'POST',
-                    body: JSON.stringify({ book_id: bookId })
-                });
-                
-                Utils.showAlert('Book borrowed successfully!', 'success');
-                // Refresh book details to update availability
-                UI.showBookDetails(bookId);
-            } catch (error) {
-                Utils.showAlert(error.message, 'danger');
-            }
-        };
+        // Removed duplicate borrowBook function - using the complete version below
 
         // Advanced Search Functions
         UI.toggleAdvancedSearch = () => {
@@ -2433,7 +2675,7 @@
                 `;
                 return;
             }
-            
+
             container.innerHTML = data.books.map(book => `
                 <div class="col-md-3 mb-4">
                     <div class="card h-100">
@@ -2604,14 +2846,12 @@
             modal.show();
         };
 
-        UI.borrowBook = async (bookId, loanPeriod) => {
+        UI.borrowBook = async (bookId, loanPeriod, dueDate) => {
             try {
+                const payload = dueDate ? { book_id: bookId, due_date: dueDate } : { book_id: bookId, loan_period_days: loanPeriod };
                 const response = await Utils.makeRequest('/checkouts/borrow', {
                     method: 'POST',
-                    body: JSON.stringify({
-                        book_id: bookId,
-                        loan_period_days: loanPeriod
-                    })
+                    body: JSON.stringify(payload)
                 });
 
                 // Close modal
@@ -2640,6 +2880,8 @@
             }
 
             document.getElementById('returnBookId').value = bookId;
+            // Keep checkout_id for precise return API
+            document.getElementById('returnBookId').setAttribute('data-checkout-id', checkout.checkout_id || '');
             document.getElementById('returnBookTitle').value = bookTitle;
             document.getElementById('returnDueDate').value = new Date(checkout.due_date).toLocaleDateString();
             
@@ -2677,11 +2919,12 @@
 
         UI.returnBook = async (bookId) => {
             try {
+                const hidden = document.getElementById('returnBookId');
+                const checkoutIdAttr = hidden.getAttribute('data-checkout-id');
+                const payload = checkoutIdAttr ? { checkout_id: parseInt(checkoutIdAttr) } : { book_id: bookId };
                 const response = await Utils.makeRequest('/checkouts/return', {
                     method: 'POST',
-                    body: JSON.stringify({
-                        book_id: bookId
-                    })
+                    body: JSON.stringify(payload)
                 });
 
                 // Close modal
@@ -2776,7 +3019,8 @@
                 e.preventDefault();
                 const bookId = parseInt(document.getElementById('borrowBookId').value);
                 const loanPeriod = parseInt(document.getElementById('loanPeriod').value);
-                await UI.borrowBook(bookId, loanPeriod);
+                const dueDate = document.getElementById('dueDatePicker').value;
+                await UI.borrowBook(bookId, loanPeriod, dueDate);
             });
 
             // Return form
@@ -2801,6 +3045,46 @@
                 
                 await UI.submitReview(bookId, rating, comment);
             });
+        };
+
+        // Simple My Reviews page (list current user's reviews)
+        UI.showMyReviews = async () => {
+            if (!App.user) {
+                Utils.showAlert('Please log in to view your reviews.', 'warning');
+                return;
+            }
+            document.getElementById('mainContent').innerHTML = `
+                <div class="container my-4">
+                    <div class="row">
+                        <div class="col-12">
+                            <button class="btn btn-outline-secondary mb-3 back-to-dashboard-btn">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                            </button>
+                        </div>
+                    </div>
+                    <h2><i class="fas fa-star me-2"></i>My Reviews</h2>
+                    <div id="myReviewsContainer"><div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div></div>
+                </div>`;
+            try {
+                const data = await Utils.makeRequest('/reviews/user');
+                const container = document.getElementById('myReviewsContainer');
+                if (!data.reviews || data.reviews.length === 0) {
+                    container.innerHTML = '<p class="text-muted">No reviews yet.</p>';
+                    return;
+                }
+                container.innerHTML = data.reviews.map(r => `
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">${r.book_title}</h5>
+                            <div class="rating mb-2">${Utils.generateStarRating(r.rating)}</div>
+                            ${r.comment ? `<p class="card-text">${r.comment}</p>` : ''}
+                            <small class="text-muted">${Utils.formatDate(r.review_date)}</small>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                Utils.showAlert('Failed to load your reviews.', 'danger');
+            }
         };
 
         // Update the existing event listeners to include new functionality

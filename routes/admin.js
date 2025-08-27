@@ -98,37 +98,32 @@ router.post('/books', requireStaff, async (req, res) => {
                 if (author.author_id) {
                     // Existing author
                     authorId = author.author_id;
-                } else if (author.first_name && author.last_name) {
-                    // New author - check if exists first
-                    const [existingAuthor] = await connection.execute(
-                        'SELECT author_id FROM authors WHERE first_name = ? AND last_name = ?',
-                        [author.first_name.trim(), author.last_name.trim()]
-                    );
-                    
-                    if (existingAuthor.length > 0) {
-                        authorId = existingAuthor[0].author_id;
-                    } else {
-                        // Create new author
-                        const [authorResult] = await connection.execute(
-                            'INSERT INTO authors (first_name, last_name, biography, nationality) VALUES (?, ?, ?, ?)',
-                            [
-                                author.first_name.trim(),
-                                author.last_name.trim(),
-                                author.biography || null,
-                                author.nationality || null
-                            ]
-                        );
-                        authorId = authorResult.insertId;
-                    }
-                } else {
-                    await connection.rollback();
-                    return res.status(400).json({
-                        error: {
-                            message: 'Author must have first_name and last_name or valid author_id',
-                            code: 'INVALID_AUTHOR'
-                        }
-                    });
+                        } else if (author.name) {
+            // New author - check if exists first
+            const [existingAuthor] = await connection.execute(
+                'SELECT author_id FROM authors WHERE name = ?',
+                [author.name.trim()]
+            );
+            
+            if (existingAuthor.length > 0) {
+                authorId = existingAuthor[0].author_id;
+            } else {
+                // Create new author
+                const [authorResult] = await connection.execute(
+                    'INSERT INTO authors (name) VALUES (?)',
+                    [author.name.trim()]
+                );
+                authorId = authorResult.insertId;
+            }
+        } else {
+            await connection.rollback();
+            return res.status(400).json({
+                error: {
+                    message: 'Author must have name or valid author_id',
+                    code: 'INVALID_AUTHOR'
                 }
+            });
+        }
                 
                 // Link book to author
                 await connection.execute(
@@ -329,7 +324,7 @@ router.put('/books/:id', requireStaff, async (req, res) => {
             SELECT 
                 b.*,
                 GROUP_CONCAT(
-                    CONCAT(a.first_name, ' ', a.last_name) 
+                    CONCAT(a.first_name, ' ', a.last_name)
                     ORDER BY ba.author_order 
                     SEPARATOR ', '
                 ) as authors
