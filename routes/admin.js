@@ -1,12 +1,12 @@
 // Smart Library Platform - Admin Routes
 const express = require('express');
 const { getMySQLConnection, callStoredProcedure, callFunction } = require('../config/database');
-const { requireStaff, requireAdmin } = require('../middleware/auth');
+const { authenticate, requireStaff, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
 // POST /api/admin/books - Add new book
-router.post('/books', requireStaff, async (req, res) => {
+router.post('/books', authenticate, requireStaff, async (req, res) => {
     const connection = await getMySQLConnection();
     
     try {
@@ -56,39 +56,30 @@ router.post('/books', requireStaff, async (req, res) => {
         await connection.beginTransaction();
         
         try {
-            // Call stored procedure to add book
-            const [results] = await connection.execute(
-                'CALL AddBook(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @result, @book_id)',
-                [
-                    title.trim(),
-                    isbn || null,
-                    publisher || null,
-                    publication_date || null,
-                    genre || null,
-                    language,
-                    pages || null,
-                    description || null,
-                    total_copies,
-                    is_ebook,
-                    cover_image_url || null,
-                    req.user.user_id
-                ]
-            );
+            // Insert the book directly (since AddBook procedure doesn't exist)
+            const [bookResult] = await connection.execute(`
+                INSERT INTO books (
+                    title, isbn, publisher, publication_date, genre, language, 
+                    pages, description, total_copies, available_copies, is_ebook, 
+                    cover_image_url, is_active, created_by
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?)
+            `, [
+                title.trim(),
+                isbn || null,
+                publisher || null,
+                publication_date || null,
+                genre || null,
+                language,
+                pages || null,
+                description || null,
+                total_copies,
+                total_copies, // available_copies starts equal to total_copies
+                is_ebook,
+                cover_image_url || null,
+                req.user.user_id
+            ]);
             
-            // Get the output parameters
-            const [[{ '@result': result, '@book_id': bookId }]] = await connection.execute(
-                'SELECT @result, @book_id'
-            );
-            
-            if (result.startsWith('Error:')) {
-                await connection.rollback();
-                return res.status(400).json({
-                    error: {
-                        message: result,
-                        code: 'ADD_BOOK_FAILED'
-                    }
-                });
-            }
+            const bookId = bookResult.insertId;
             
             // Add authors
             for (let i = 0; i < authors.length; i++) {
@@ -98,32 +89,37 @@ router.post('/books', requireStaff, async (req, res) => {
                 if (author.author_id) {
                     // Existing author
                     authorId = author.author_id;
-                        } else if (author.name) {
-            // New author - check if exists first
-            const [existingAuthor] = await connection.execute(
-                'SELECT author_id FROM authors WHERE name = ?',
-                [author.name.trim()]
-            );
-            
-            if (existingAuthor.length > 0) {
-                authorId = existingAuthor[0].author_id;
-            } else {
-                // Create new author
-                const [authorResult] = await connection.execute(
-                    'INSERT INTO authors (name) VALUES (?)',
-                    [author.name.trim()]
-                );
-                authorId = authorResult.insertId;
-            }
-        } else {
-            await connection.rollback();
-            return res.status(400).json({
-                error: {
-                    message: 'Author must have name or valid author_id',
-                    code: 'INVALID_AUTHOR'
+                } else if (author.name) {
+                    // Parse author name (assuming format: "First Last" or "First Middle Last")
+                    const nameParts = author.name.trim().split(' ');
+                    const firstName = nameParts[0] || '';
+                    const lastName = nameParts.slice(1).join(' ') || '';
+                    
+                    // Check if author exists
+                    const [existingAuthor] = await connection.execute(
+                        'SELECT author_id FROM authors WHERE first_name = ? AND last_name = ?',
+                        [firstName, lastName]
+                    );
+                    
+                    if (existingAuthor.length > 0) {
+                        authorId = existingAuthor[0].author_id;
+                    } else {
+                        // Create new author
+                        const [authorResult] = await connection.execute(
+                            'INSERT INTO authors (first_name, last_name) VALUES (?, ?)',
+                            [firstName, lastName]
+                        );
+                        authorId = authorResult.insertId;
+                    }
+                } else {
+                    await connection.rollback();
+                    return res.status(400).json({
+                        error: {
+                            message: 'Author must have name or valid author_id',
+                            code: 'INVALID_AUTHOR'
+                        }
+                    });
                 }
-            });
-        }
                 
                 // Link book to author
                 await connection.execute(
@@ -131,6 +127,12 @@ router.post('/books', requireStaff, async (req, res) => {
                     [bookId, authorId, i + 1]
                 );
             }
+            
+            // Log the action
+            await connection.execute(
+                'INSERT INTO staff_logs (staff_id, action_type, target_type, target_id, action_description) VALUES (?, ?, ?, ?, ?)',
+                [req.user.user_id, 'add_book', 'book', bookId, `Book added: ${title.trim()}`]
+            );
             
             await connection.commit();
             
@@ -154,7 +156,9 @@ router.post('/books', requireStaff, async (req, res) => {
                 message: 'Book added successfully',
                 book: {
                     ...bookDetails[0],
-                    authors: bookDetails[0].authors ? bookDetails[0].authors.split(', ') : []
+                    authors: bookDetails[0].authors ? bookDetails[0].authors.split(', ') : [],
+                    is_available: bookDetails[0].available_copies > 0,
+                    availability_status: bookDetails[0].available_copies > 0 ? 'available' : 'unavailable'
                 }
             });
             
@@ -177,7 +181,7 @@ router.post('/books', requireStaff, async (req, res) => {
 });
 
 // PUT /api/admin/books/:id - Update book details
-router.put('/books/:id', requireStaff, async (req, res) => {
+router.put('/books/:id', authenticate, requireStaff, async (req, res) => {
     const connection = await getMySQLConnection();
     
     try {
@@ -357,7 +361,7 @@ router.put('/books/:id', requireStaff, async (req, res) => {
 });
 
 // PUT /api/admin/books/:id/inventory - Update book inventory
-router.put('/books/:id/inventory', requireStaff, async (req, res) => {
+router.put('/books/:id/inventory', authenticate, requireStaff, async (req, res) => {
     const connection = await getMySQLConnection();
     
     try {
@@ -403,13 +407,17 @@ router.put('/books/:id/inventory', requireStaff, async (req, res) => {
             
             // Get updated book details
             const [updatedBook] = await connection.execute(
-                'SELECT book_id, title, total_copies, available_copies FROM books WHERE book_id = ?',
+                'SELECT book_id, title, total_copies, available_copies, is_active FROM books WHERE book_id = ?',
                 [bookId]
             );
             
             res.json({
                 message: 'Inventory updated successfully',
-                book: updatedBook[0]
+                book: {
+                    ...updatedBook[0],
+                    is_available: updatedBook[0].available_copies > 0,
+                    availability_status: updatedBook[0].available_copies > 0 ? 'available' : 'unavailable'
+                }
             });
             
         } catch (procedureError) {
@@ -436,7 +444,7 @@ router.put('/books/:id/inventory', requireStaff, async (req, res) => {
 });
 
 // DELETE /api/admin/books/:id - Retire a book
-router.delete('/books/:id', requireStaff, async (req, res) => {
+router.delete('/books/:id', authenticate, requireStaff, async (req, res) => {
     const connection = await getMySQLConnection();
     
     try {
@@ -498,7 +506,7 @@ router.delete('/books/:id', requireStaff, async (req, res) => {
 });
 
 // GET /api/admin/reports - Get various administrative reports
-router.get('/reports', requireStaff, async (req, res) => {
+router.get('/reports', authenticate, requireStaff, async (req, res) => {
     const connection = await getMySQLConnection();
     
     try {
@@ -529,10 +537,10 @@ router.get('/reports', requireStaff, async (req, res) => {
                             SEPARATOR ', '
                         ) as authors
                     FROM books b
-                    LEFT JOIN checkouts c ON b.book_id = c.book_id ${timeCondition}
+                    LEFT JOIN checkouts c ON b.book_id = c.book_id
                     LEFT JOIN book_authors ba ON b.book_id = ba.book_id
                     LEFT JOIN authors a ON ba.author_id = a.author_id
-                    WHERE b.is_active = TRUE
+                    WHERE b.is_active = TRUE ${timeCondition}
                     GROUP BY b.book_id
                     HAVING checkout_count > 0
                     ORDER BY checkout_count DESC
@@ -569,8 +577,8 @@ router.get('/reports', requireStaff, async (req, res) => {
                         COUNT(CASE WHEN c.is_returned = FALSE THEN 1 END) as active_checkouts,
                         COUNT(CASE WHEN c.is_late = TRUE THEN 1 END) as late_returns
                     FROM users u
-                    LEFT JOIN checkouts c ON u.user_id = c.user_id ${readerTimeCondition}
-                    WHERE u.user_type = 'reader' AND u.is_active = TRUE
+                    LEFT JOIN checkouts c ON u.user_id = c.user_id
+                    WHERE u.user_type = 'reader' AND u.is_active = TRUE ${readerTimeCondition}
                     GROUP BY u.user_id
                     HAVING checkout_count > 0
                     ORDER BY checkout_count DESC
@@ -736,7 +744,7 @@ router.get('/reports', requireStaff, async (req, res) => {
 });
 
 // GET /api/admin/users - Get all users (admin only)
-router.get('/users', requireAdmin, async (req, res) => {
+router.get('/users', authenticate, requireAdmin, async (req, res) => {
     const connection = await getMySQLConnection();
     
     try {
@@ -819,7 +827,7 @@ router.get('/users', requireAdmin, async (req, res) => {
 });
 
 // PUT /api/admin/users/:id - Update user (admin only)
-router.put('/users/:id', requireAdmin, async (req, res) => {
+router.put('/users/:id', authenticate, requireAdmin, async (req, res) => {
     const connection = await getMySQLConnection();
     
     try {
