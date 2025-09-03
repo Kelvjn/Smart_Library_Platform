@@ -304,7 +304,7 @@ router.post('/return', authenticate, async (req, res) => {
             const isLate = returnDate > dueDate;
             const lateFee = isLate ? Math.ceil((returnDate - dueDate) / (1000 * 60 * 60 * 24)) * 0.50 : 0; // $0.50 per day
 
-            // Update checkout record (do not touch inventory here; trigger handles it)
+            // Update checkout record
             await connection.execute(`
                 UPDATE checkouts 
                 SET return_date = NOW(), 
@@ -314,6 +314,19 @@ router.post('/return', authenticate, async (req, res) => {
                     staff_return_id = ?
                 WHERE checkout_id = ? AND is_returned = FALSE
             `, [isLate, lateFee, staff_id, checkoutId]);
+
+            // Update book available copies (since trigger couldn't be created)
+            await connection.execute(`
+                UPDATE books 
+                SET available_copies = available_copies + 1
+                WHERE book_id = ?
+            `, [effectiveBookId]);
+
+            // Log the return action
+            await connection.execute(`
+                INSERT INTO staff_logs (staff_id, action_type, target_type, target_id, action_description, action_date)
+                VALUES (?, 'add_book', 'book', ?, ?, NOW())
+            `, [staff_id, effectiveBookId, `Book returned. Checkout ID: ${checkoutId}, Book ID: ${effectiveBookId}, Late: ${isLate}, Fee: $${lateFee}`]);
 
             await connection.commit();
             
@@ -408,27 +421,71 @@ router.put('/:id/return', authenticate, async (req, res) => {
             }
         }
         
-        // Call stored procedure to return book
+        // Return book directly (since stored procedure doesn't exist)
         try {
-            const [results] = await connection.execute(
-                'CALL ReturnBook(?, ?, @result, @late_fee)',
-                [checkoutId, staff_id]
-            );
-            
-            // Get the output parameters
-            const [[{ '@result': result, '@late_fee': lateFee }]] = await connection.execute(
-                'SELECT @result, @late_fee'
-            );
-            
-            if (result.startsWith('Error:')) {
-                return res.status(409).json({
+            await connection.beginTransaction();
+
+            // Get checkout details
+            const [checkoutRows] = await connection.execute(`
+                SELECT c.checkout_id, c.book_id, c.due_date, c.is_returned
+                FROM checkouts c
+                WHERE c.checkout_id = ?
+            `, [checkoutId]);
+
+            if (checkoutRows.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({
                     error: {
-                        message: result,
-                        code: 'RETURN_FAILED'
+                        message: 'Checkout not found',
+                        code: 'CHECKOUT_NOT_FOUND'
                     }
                 });
             }
+
+            const checkout = checkoutRows[0];
             
+            if (checkout.is_returned) {
+                await connection.rollback();
+                return res.status(409).json({
+                    error: {
+                        message: 'Book already returned',
+                        code: 'ALREADY_RETURNED'
+                    }
+                });
+            }
+
+            // Calculate if return is late
+            const dueDate = new Date(checkout.due_date);
+            const returnDate = new Date();
+            const isLate = returnDate > dueDate;
+            const lateFee = isLate ? Math.ceil((returnDate - dueDate) / (1000 * 60 * 60 * 24)) * 0.50 : 0; // $0.50 per day
+
+            // Update checkout record
+            await connection.execute(`
+                UPDATE checkouts 
+                SET return_date = NOW(), 
+                    is_returned = TRUE, 
+                    is_late = ?, 
+                    late_fee = ?,
+                    staff_return_id = ?
+                WHERE checkout_id = ?
+            `, [isLate, lateFee, staff_id, checkoutId]);
+
+            // Update book available copies
+            await connection.execute(`
+                UPDATE books 
+                SET available_copies = available_copies + 1
+                WHERE book_id = ?
+            `, [checkout.book_id]);
+
+            // Log the return action
+            await connection.execute(`
+                INSERT INTO staff_logs (staff_id, action_type, target_type, target_id, action_description, action_date)
+                VALUES (?, 'add_book', 'book', ?, ?, NOW())
+            `, [staff_id, checkout.book_id, `Book returned. Checkout ID: ${checkoutId}, Book ID: ${checkout.book_id}, Late: ${isLate}, Fee: $${lateFee}`]);
+
+            await connection.commit();
+
             // Get updated checkout details
             const [checkoutDetails] = await connection.execute(`
                 SELECT 
@@ -462,12 +519,14 @@ router.put('/:id/return', authenticate, async (req, res) => {
                 late_fee: parseFloat(lateFee)
             });
             
-        } catch (procedureError) {
-            console.error('Return procedure error:', procedureError);
+        } catch (transactionError) {
+            await connection.rollback();
+            console.error('Transaction error during book return:', transactionError);
             return res.status(500).json({
                 error: {
                     message: 'Failed to process book return',
-                    code: 'PROCEDURE_ERROR'
+                    code: 'TRANSACTION_ERROR',
+                    details: transactionError.message
                 }
             });
         }

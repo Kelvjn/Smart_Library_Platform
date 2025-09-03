@@ -1,4 +1,4 @@
-// Smart Library Platform - Admin Routes (UPDATED FOR ACTUAL SCHEMA)
+// Smart Library Platform - Admin Routes (FIXED VERSION)
 const express = require('express');
 const { getMySQLConnection } = require('../config/database');
 const { authenticate, requireStaff } = require('../middleware/auth');
@@ -47,13 +47,13 @@ router.post('/books', authenticate, requireStaff, async (req, res) => {
         await connection.beginTransaction();
         
         try {
-            // Insert the book
+            // Insert the book (without created_by column for now)
             const [bookResult] = await connection.execute(`
                 INSERT INTO books (
                     title, isbn, publisher, publication_date, genre, language, 
                     pages, description, total_copies, available_copies, is_ebook, 
-                    cover_image_url, is_active, created_by
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?)
+                    cover_image_url, is_active
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)
             `, [
                 title.trim(),
                 isbn || null,
@@ -66,13 +66,12 @@ router.post('/books', authenticate, requireStaff, async (req, res) => {
                 total_copies,
                 total_copies, // available_copies starts equal to total_copies
                 is_ebook,
-                cover_image_url || null,
-                req.user.user_id
+                cover_image_url || null
             ]);
             
             const bookId = bookResult.insertId;
             
-            // Add authors
+            // Add authors (handle both old and new schema)
             for (let i = 0; i < authors.length; i++) {
                 const author = authors[i];
                 let authorId;
@@ -81,25 +80,45 @@ router.post('/books', authenticate, requireStaff, async (req, res) => {
                     // Existing author
                     authorId = author.author_id;
                 } else if (author.name) {
-                    // Check if author exists by first_name and last_name
-                    const nameParts = author.name.trim().split(' ');
-                    const firstName = nameParts[0] || '';
-                    const lastName = nameParts.slice(1).join(' ') || '';
-                    
-                    const [existingAuthor] = await connection.execute(
-                        'SELECT author_id FROM authors WHERE first_name = ? AND last_name = ?',
-                        [firstName, lastName]
-                    );
+                    // Check if author exists (handle both schemas)
+                    let existingAuthor;
+                    try {
+                        // Try new schema first (first_name, last_name)
+                        [existingAuthor] = await connection.execute(
+                            'SELECT author_id FROM authors WHERE first_name = ? AND last_name = ?',
+                            [author.name.trim().split(' ')[0], author.name.trim().split(' ').slice(1).join(' ')]
+                        );
+                    } catch (error) {
+                        // Fall back to old schema (name field)
+                        [existingAuthor] = await connection.execute(
+                            'SELECT author_id FROM authors WHERE name = ?',
+                            [author.name.trim()]
+                        );
+                    }
                     
                     if (existingAuthor.length > 0) {
                         authorId = existingAuthor[0].author_id;
                     } else {
-                        // Create new author
-                        const [authorResult] = await connection.execute(
-                            'INSERT INTO authors (first_name, last_name) VALUES (?, ?)',
-                            [firstName, lastName]
-                        );
-                        authorId = authorResult.insertId;
+                        // Create new author (handle both schemas)
+                        try {
+                            // Try new schema first
+                            const nameParts = author.name.trim().split(' ');
+                            const firstName = nameParts[0] || '';
+                            const lastName = nameParts.slice(1).join(' ') || '';
+                            
+                            const [authorResult] = await connection.execute(
+                                'INSERT INTO authors (first_name, last_name) VALUES (?, ?)',
+                                [firstName, lastName]
+                            );
+                            authorId = authorResult.insertId;
+                        } catch (error) {
+                            // Fall back to old schema
+                            const [authorResult] = await connection.execute(
+                                'INSERT INTO authors (name) VALUES (?)',
+                                [author.name.trim()]
+                            );
+                            authorId = authorResult.insertId;
+                        }
                     }
                 } else {
                     await connection.rollback();
@@ -131,7 +150,10 @@ router.post('/books', authenticate, requireStaff, async (req, res) => {
                 SELECT 
                     b.*,
                     GROUP_CONCAT(
-                        CONCAT(a.first_name, ' ', a.last_name)
+                        COALESCE(
+                            CONCAT(a.first_name, ' ', a.last_name),
+                            a.name
+                        ) 
                         ORDER BY ba.author_order 
                         SEPARATOR ', '
                     ) as authors
@@ -220,7 +242,7 @@ router.put('/books/:id/inventory', authenticate, requireStaff, async (req, res) 
             });
         }
         
-        // Update book inventory
+        // Update book inventory directly
         await connection.execute(
             'UPDATE books SET total_copies = ?, available_copies = ? WHERE book_id = ?',
             [total_copies, newAvailable, bookId]
@@ -239,7 +261,10 @@ router.put('/books/:id/inventory', authenticate, requireStaff, async (req, res) 
             SELECT 
                 b.*,
                 GROUP_CONCAT(
-                    CONCAT(a.first_name, ' ', a.last_name)
+                    COALESCE(
+                        CONCAT(a.first_name, ' ', a.last_name),
+                        a.name
+                    ) 
                     ORDER BY ba.author_order 
                     SEPARATOR ', '
                 ) as authors
@@ -314,7 +339,7 @@ router.delete('/books/:id', authenticate, requireStaff, async (req, res) => {
             });
         }
         
-        // Retire the book
+        // Retire the book directly
         await connection.execute(
             'UPDATE books SET is_active = FALSE, available_copies = 0 WHERE book_id = ?',
             [bookId]
@@ -363,7 +388,10 @@ router.get('/reports', authenticate, requireStaff, async (req, res) => {
                         b.total_borrowed,
                         b.average_rating,
                         GROUP_CONCAT(
-                            CONCAT(a.first_name, ' ', a.last_name)
+                            COALESCE(
+                                CONCAT(a.first_name, ' ', a.last_name),
+                                a.name
+                            ) 
                             ORDER BY ba.author_order 
                             SEPARATOR ', '
                         ) as authors
@@ -432,7 +460,10 @@ router.get('/reports', authenticate, requireStaff, async (req, res) => {
                         b.available_copies,
                         ROUND((b.available_copies / b.total_copies) * 100, 2) as availability_percentage,
                         GROUP_CONCAT(
-                            CONCAT(a.first_name, ' ', a.last_name)
+                            COALESCE(
+                                CONCAT(a.first_name, ' ', a.last_name),
+                                a.name
+                            ) 
                             ORDER BY ba.author_order 
                             SEPARATOR ', '
                         ) as authors

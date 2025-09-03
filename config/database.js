@@ -7,7 +7,7 @@ require('dotenv').config();
 const mysqlConfig = {
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '1192004',
+    password: process.env.DB_PASSWORD || undefined, // Use undefined instead of empty string
     database: process.env.DB_NAME || 'smart_library',
     port: process.env.DB_PORT || 3306,
     waitForConnections: true,
@@ -26,6 +26,11 @@ const mysqlConfig = {
     bigNumberStrings: true
 };
 
+// Remove password field if it's undefined to avoid "using password: YES" error
+if (!mysqlConfig.password) {
+    delete mysqlConfig.password;
+}
+
 // Create MySQL connection pool
 const mysqlPool = mysql.createPool(mysqlConfig);
 
@@ -42,17 +47,32 @@ async function initializeMongoDB() {
                 maxPoolSize: 10,
                 serverSelectionTimeoutMS: 5000,
                 socketTimeoutMS: 45000,
-                maxIdleTimeMS: 30000
+                maxIdleTimeMS: 30000,
+                retryWrites: true,
+                w: 'majority'
             });
             
             await mongoClient.connect();
             mongoDb = mongoClient.db();
+            
+            // Test the connection
+            await mongoDb.admin().ping();
             console.log('Connected to MongoDB successfully');
         }
         return mongoDb;
     } catch (error) {
         console.error('MongoDB connection error:', error);
-        throw error;
+        
+        // Handle specific MongoDB errors
+        if (error.name === 'MongoServerSelectionError') {
+            throw new Error('MongoDB server is not accessible. Please check if MongoDB is running.');
+        } else if (error.name === 'MongoNetworkError') {
+            throw new Error('MongoDB network error. Please check connection string and network connectivity.');
+        } else if (error.name === 'MongoParseError') {
+            throw new Error('Invalid MongoDB connection string. Please check MONGODB_URI in environment variables.');
+        }
+        
+        throw new Error(`MongoDB connection failed: ${error.message}`);
     }
 }
 
@@ -60,10 +80,24 @@ async function initializeMongoDB() {
 async function getMySQLConnection() {
     try {
         const connection = await mysqlPool.getConnection();
+        
+        // Test connection before returning
+        await connection.execute('SELECT 1');
+        
         return connection;
     } catch (error) {
         console.error('MySQL connection error:', error);
-        throw error;
+        
+        // Handle specific MySQL errors
+        if (error.code === 'ECONNREFUSED') {
+            throw new Error('MySQL server is not accessible. Please check if MySQL is running.');
+        } else if (error.code === 'ER_ACCESS_DENIED_ERROR') {
+            throw new Error('MySQL access denied. Please check username and password.');
+        } else if (error.code === 'ER_BAD_DB_ERROR') {
+            throw new Error('Database does not exist. Please create the database first.');
+        }
+        
+        throw new Error(`Database connection failed: ${error.message}`);
     }
 }
 
@@ -73,6 +107,22 @@ async function getMongoDatabase() {
         await initializeMongoDB();
     }
     return mongoDb;
+}
+
+// Get database connection pool status
+function getPoolStatus() {
+    return {
+        mysql: {
+            totalConnections: mysqlPool.pool.config.connectionLimit,
+            idleConnections: mysqlPool.pool._freeConnections.length,
+            activeConnections: mysqlPool.pool._allConnections.length - mysqlPool.pool._freeConnections.length,
+            waitingConnections: mysqlPool.pool._connectionQueue.length
+        },
+        mongodb: {
+            connected: mongoClient ? mongoClient.topology.isConnected() : false,
+            maxPoolSize: mongoClient ? mongoClient.topology.s.options.maxPoolSize : 0
+        }
+    };
 }
 
 // Test database connections
@@ -280,34 +330,45 @@ function handleDatabaseError(error) {
 // Health check for databases
 async function healthCheck() {
     const health = {
-        mysql: { status: 'unknown', latency: null, error: null },
-        mongodb: { status: 'unknown', latency: null, error: null },
-        timestamp: new Date().toISOString()
+        mysql: { status: 'unknown', latency: null, error: null, version: null },
+        mongodb: { status: 'unknown', latency: null, error: null, version: null },
+        timestamp: new Date().toISOString(),
+        system: {
+            uptime: process.uptime(),
+            memory: process.memoryUsage(),
+            nodeVersion: process.version,
+            platform: process.platform
+        }
     };
 
     // MySQL health check
     try {
         const start = Date.now();
         const connection = await getMySQLConnection();
-        await connection.execute('SELECT 1');
+        const [versionResult] = await connection.execute('SELECT VERSION() as version');
         connection.release();
         health.mysql.status = 'healthy';
         health.mysql.latency = Date.now() - start;
+        health.mysql.version = versionResult[0]?.version || 'Unknown';
     } catch (error) {
         health.mysql.status = 'unhealthy';
         health.mysql.error = error.message;
+        health.mysql.latency = null;
     }
 
     // MongoDB health check
     try {
         const start = Date.now();
         const mongodb = await getMongoDatabase();
+        const buildInfo = await mongodb.admin().buildInfo();
         await mongodb.admin().ping();
         health.mongodb.status = 'healthy';
         health.mongodb.latency = Date.now() - start;
+        health.mongodb.version = buildInfo.version || 'Unknown';
     } catch (error) {
         health.mongodb.status = 'unhealthy';
         health.mongodb.error = error.message;
+        health.mongodb.latency = null;
     }
 
     return health;
@@ -331,6 +392,7 @@ module.exports = {
     // Utility functions
     handleDatabaseError,
     healthCheck,
+    getPoolStatus,
     
     // Direct pool access (use sparingly)
     mysqlPool

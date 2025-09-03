@@ -1419,6 +1419,9 @@
 
                 // Load featured books
                 UI.loadFeaturedBooks();
+                
+                // Process images after content is loaded
+                setTimeout(processBookCoverImages, 100);
             },
 
             loadFeaturedBooks: async () => {
@@ -1434,32 +1437,36 @@
                     container.innerHTML = data.books.map(book => `
                         <div class="col-md-4 mb-4">
                             <div class="card h-100">
-                                                <img src="${book.cover_image_url || 'https://via.placeholder.com/300x400/f0f0f0/666?text=Loading...'}"
-                     class="card-img-top book-cover book-cover-img" alt="${book.title}"
-                     data-fallback="${UI.getPlaceholderImage(book.title, '300x400', book.genre)}"
+                                                <img src="" class="card-img-top book-cover book-cover-img" alt="${book.title}"
+                     data-cover-url="${book.cover_image_url || ''}"
                      loading="lazy">
                                 <div class="card-body d-flex flex-column">
                                     <h5 class="card-title">${book.title}</h5>
                                     <p class="card-text text-muted small">by ${book.authors.join(', ')}</p>
                                     <p class="card-text flex-grow-1">${(book.description || '').substring(0, 100)}...</p>
                                     <div class="mt-auto">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div class="rating">
-                                                ${Utils.generateStarRating(book.average_rating)}
-                                                <small class="text-muted">(${book.total_reviews})</small>
+                                        <div class="mt-auto">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div class="rating">
+                                                    ${Utils.generateStarRating(book.average_rating)}
+                                                    <small class="text-muted">(${book.total_reviews})</small>
+                                                </div>
+                                                <span class="availability-badge ${book.is_available ? 'bg-success' : 'bg-danger'} text-white">
+                                                    ${book.is_available ? `Available (${book.available_copies || 0}/${book.total_copies || 0})` : 'Unavailable'}
+                                                </span>
                                             </div>
-                                            <span class="availability-badge ${book.is_available ? 'bg-success' : 'bg-danger'} text-white">
-                                                ${book.is_available ? `Available (${book.available_copies || 0}/${book.total_copies || 0})` : 'Unavailable'}
-                                            </span>
+                                            <button class="btn btn-primary btn-sm mt-2 w-100 view-details-btn" data-book-id="${book.book_id}">
+                                                View Details
+                                            </button>
                                         </div>
-                                        <button class="btn btn-primary btn-sm mt-2 w-100 view-details-btn" data-book-id="${book.book_id}">
-                                            View Details
-                                        </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     `).join('');
+                    
+                    // Process images after featured books are loaded
+                    setTimeout(processBookCoverImages, 100);
                 } catch (error) {
                     document.getElementById('featuredBooksContainer').innerHTML = 
                         '<div class="col-12 text-center"><p class="text-danger">Failed to load featured books.</p></div>';
@@ -1643,6 +1650,9 @@
 
                 UI.loadBooks();
                 UI.loadGenresForAdvancedSearch();
+                
+                // Process images after content is loaded
+                setTimeout(processBookCoverImages, 100);
             },
 
             loadBooks: async (page = 1, search = '', genre = '', sortBy = 'title') => {
@@ -1668,9 +1678,8 @@
                     container.innerHTML = data.books.map(book => `
                         <div class="col-md-3 mb-4">
                             <div class="card h-100">
-                                <img src="${book.cover_image_url || 'https://via.placeholder.com/200x300/f0f0f0/666?text=Loading...'}" 
-                                     class="card-img-top book-cover book-cover-img" alt="${book.title}"
-                                     data-fallback="${UI.getPlaceholderImage(book.genre, '200x300')}"
+                                <img src="" class="card-img-top book-cover book-cover-img" alt="${book.title}"
+                                     data-cover-url="${book.cover_image_url || ''}"
                                      style="height: 250px; object-fit: cover;" loading="lazy">
                                 <div class="card-body d-flex flex-column">
                                     <h6 class="card-title">${book.title}</h6>
@@ -1711,6 +1720,9 @@
                             genreFilter.appendChild(option);
                         });
                     }
+                    
+                    // Process images after books are loaded
+                    setTimeout(processBookCoverImages, 100);
                 } catch (error) {
                     document.getElementById('booksContainer').innerHTML = 
                         '<div class="col-12 text-center"><p class="text-danger">Failed to load books.</p></div>';
@@ -1848,9 +1860,8 @@
                             <!-- Book Cover and Actions -->
                             <div class="col-md-4">
                                 <div class="card">
-                                    <img src="${book.cover_image_url || 'https://via.placeholder.com/300x400/f0f0f0/666?text=Loading...'}" 
-                                         class="card-img-top book-cover book-cover-img" alt="${book.title}"
-                                         data-fallback="${UI.getPlaceholderImage(book.title, '300x400', book.genre)}"
+                                    <img src="" class="card-img-top book-cover book-cover-img" alt="${book.title}"
+                                         data-cover-url="${book.cover_image_url || ''}"
                                          loading="lazy">
                                     <div class="card-body">
                                         <div class="d-grid gap-2">
@@ -2086,8 +2097,7 @@
                                         ${seriesBooks.map(seriesBook => `
                                             <div class="col-md-2 col-sm-4 col-6 mb-3">
                                                 <div class="card h-100 ${seriesBook.is_current ? 'border-primary' : ''}">
-                                                    <img src="${seriesBook.cover_image_url || 'https://via.placeholder.com/150x200/f0f0f0/666?text=No+Cover'}" 
-                                                         class="card-img-top" alt="${seriesBook.title}" style="height: 200px; object-fit: cover;">
+                                                    <img src="" class="card-img-top" alt="${seriesBook.title}" style="height: 200px; object-fit: cover;" data-cover-url="${seriesBook.cover_image_url || ''}">
                                                     <div class="card-body p-2">
                                                         <h6 class="card-title small">${seriesBook.title}</h6>
                                                         ${seriesBook.series_order ? `<small class="text-muted">Book ${seriesBook.series_order}</small><br>` : ''}
@@ -2138,8 +2148,7 @@
                                         ${similarBooks.map(similar => `
                                             <div class="col-md-2 col-sm-4 col-6 mb-3">
                                                 <div class="card h-100">
-                                                    <img src="${similar.cover_image_url || 'https://via.placeholder.com/150x200/f0f0f0/666?text=No+Cover'}" 
-                                                         class="card-img-top" alt="${similar.title}" style="height: 200px; object-fit: cover;">
+                                                    <img src="" class="card-img-top" alt="${similar.title}" style="height: 200px; object-fit: cover;" data-cover-url="${similar.cover_image_url || ''}">
                                                     <div class="card-body p-2">
                                                         <h6 class="card-title small">${similar.title}</h6>
                                                         <p class="card-text small text-muted">${similar.authors.join(', ')}</p>
@@ -2204,7 +2213,12 @@
 
                 document.getElementById('mainContent').innerHTML = `
                     <div class="container my-4">
-                        <h2>My Dashboard</h2>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h2>My Dashboard</h2>
+                            <button class="btn btn-outline-primary refresh-dashboard-btn" onclick="UI.forceGlobalRefresh()">
+                                <i class="fas fa-sync-alt me-2"></i>Refresh
+                            </button>
+                        </div>
                         <div id="dashboardContainer">
                             <div class="text-center">
                                 <div class="spinner-border" role="status">
@@ -2329,7 +2343,10 @@
                                                              ${checkout.is_overdue ? 'Overdue' : `${checkout.days_until_due} days left`}
                                                          </span>
                                                          <br>
-                                                         <button class="btn btn-warning btn-sm return-btn" data-book-id="${checkout.book_id}" data-book-title="${checkout.title}">
+                                                         <button class="btn btn-warning btn-sm return-btn" 
+                                                                 data-book-id="${checkout.book_id}" 
+                                                                 data-book-title="${checkout.title}"
+                                                                 onclick="UI.showReturnModal(${checkout.book_id}, '${checkout.title.replace(/'/g, "\\'")}')">
                                                              <i class="fas fa-undo me-1"></i>Return
                                                          </button>
                                                      </div>
@@ -2391,6 +2408,9 @@
             
             // Check authentication status
             Auth.checkAuth();
+
+            // Initialize enhanced image loading system
+            initializeImageLoading();
 
             // Navigation event listeners
             document.getElementById('navBrand').addEventListener('click', (e) => {
@@ -2463,11 +2483,24 @@
                     const bookTitle = btn.dataset.bookTitle;
                     UI.showBorrowModal(bookId, bookTitle);
                 } else if (e.target.classList.contains('return-btn') || e.target.closest('.return-btn')) {
+                    console.log('🔍 Return button clicked!');
                     const btn = e.target.closest('.return-btn') || e.target;
                     const bookId = btn.dataset.bookId;
                     const bookTitle = btn.dataset.bookTitle;
+                    console.log('🔍 Button data:', { bookId, bookTitle });
+                    console.log('🔍 Button element:', btn);
+                    
                     // Ensure we have fresh checkout data before opening the modal
-                    try { if (!App.userCheckouts || !Array.isArray(App.userCheckouts)) { await UI.loadUserData(); } } catch (_) {}
+                    try { 
+                        if (!App.userCheckouts || !Array.isArray(App.userCheckouts)) { 
+                            console.log('🔄 Loading user data...');
+                            await UI.loadUserData(); 
+                        } 
+                    } catch (error) { 
+                        console.error('❌ Error loading user data:', error);
+                    }
+                    
+                    console.log('🔍 Calling showReturnModal...');
                     UI.showReturnModal(bookId, bookTitle);
                 } else if (e.target.classList.contains('review-btn') || e.target.closest('.review-btn')) {
                     const btn = e.target.closest('.review-btn') || e.target;
@@ -2694,9 +2727,8 @@
             container.innerHTML = data.books.map(book => `
                 <div class="col-md-3 mb-4">
                     <div class="card h-100">
-                        <img src="${book.cover_image_url || 'https://via.placeholder.com/200x300/f0f0f0/666?text=Loading...'}" 
-                             class="card-img-top book-cover book-cover-img" alt="${book.title}" 
-                             data-fallback="${UI.getPlaceholderImage(book.genre, '200x300')}"
+                        <img src="" class="card-img-top book-cover book-cover-img" alt="${book.title}" 
+                             data-cover-url="${book.cover_image_url || ''}"
                              style="height: 250px; object-fit: cover;" loading="lazy">
                         <div class="card-body d-flex flex-column">
                             <h6 class="card-title" title="${book.title}">${book.title}</h6>
@@ -2846,9 +2878,26 @@
 
         // Get user's checkout for a specific book
         UI.getUserCheckout = (bookId) => {
-            return App.userCheckouts.find(checkout => 
-                checkout.book_id === bookId && !checkout.is_returned
-            );
+            console.log('🔍 getUserCheckout called with bookId:', bookId, 'type:', typeof bookId);
+            console.log('🔍 App.userCheckouts:', App.userCheckouts);
+            
+            // Convert bookId to number for comparison
+            const numericBookId = parseInt(bookId);
+            
+            const checkout = App.userCheckouts.find(checkout => {
+                const checkoutBookId = parseInt(checkout.book_id);
+                const isMatch = checkoutBookId === numericBookId && !checkout.is_returned;
+                console.log('🔍 Checking checkout:', {
+                    checkoutBookId,
+                    numericBookId,
+                    isReturned: checkout.is_returned,
+                    isMatch
+                });
+                return isMatch;
+            });
+            
+            console.log('🔍 Found checkout:', checkout);
+            return checkout;
         };
 
         // Borrow Book Functions
@@ -2876,9 +2925,23 @@
                 // Show success message
                 Utils.showAlert('Book borrowed successfully! You will receive email reminders before the due date.', 'success');
 
-                // Reload user data and refresh the page
+                // Reload user data and refresh ALL relevant views
                 await UI.loadUserData();
-                UI.showBookDetails(bookId);
+                
+                // Refresh the current view to ensure UI is in sync
+                if (App.currentView === 'checkouts') {
+                    // If user is on checkouts page, refresh it completely
+                    await UI.showAllCheckouts();
+                } else if (App.currentView === 'dashboard') {
+                    // If user is on dashboard, refresh it
+                    UI.showDashboard();
+                } else {
+                    // Default: show book details
+                    UI.showBookDetails(bookId);
+                }
+                
+                // Force refresh ALL checkout-related displays for maximum synchronization
+                await UI.refreshAllCheckoutDisplays();
 
             } catch (error) {
                 document.getElementById('borrowError').textContent = error.message;
@@ -2888,10 +2951,41 @@
 
         // Return Book Functions
         UI.showReturnModal = async (bookId, bookTitle) => {
+            console.log('🔍 showReturnModal called with:', { bookId, bookTitle });
+            console.log('🔍 App.userCheckouts:', App.userCheckouts);
+            
+            // Ensure user checkouts are loaded
+            if (!App.userCheckouts || App.userCheckouts.length === 0) {
+                console.log('🔄 Loading user data...');
+                await UI.loadUserData();
+            }
+            
             const checkout = UI.getUserCheckout(bookId);
+            console.log('🔍 Found checkout:', checkout);
+            
             if (!checkout) {
-                Utils.showAlert('Checkout not found.', 'danger');
-                return;
+                console.error('❌ Checkout not found for book:', bookId);
+                console.error('❌ Available checkouts:', App.userCheckouts);
+                
+                // Try to find the checkout by book title as fallback
+                const fallbackCheckout = App.userCheckouts.find(c => 
+                    c.title && c.title.toLowerCase().includes(bookTitle.toLowerCase()) && !c.is_returned
+                );
+                
+                if (fallbackCheckout) {
+                    console.log('✅ Found fallback checkout by title:', fallbackCheckout);
+                    // Use the fallback checkout
+                    document.getElementById('returnBookId').value = fallbackCheckout.book_id;
+                    document.getElementById('returnBookId').setAttribute('data-checkout-id', fallbackCheckout.checkout_id || '');
+                    document.getElementById('returnBookTitle').value = fallbackCheckout.title;
+                    document.getElementById('returnDueDate').value = new Date(fallbackCheckout.due_date).toLocaleDateString();
+                    
+                    // Continue with the fallback checkout
+                    checkout = fallbackCheckout;
+                } else {
+                    Utils.showAlert('Checkout not found. Please refresh the page and try again.', 'danger');
+                    return;
+                }
             }
 
             document.getElementById('returnBookId').value = bookId;
@@ -2952,9 +3046,23 @@
                     'Book returned successfully! Thank you for returning on time.';
                 Utils.showAlert(message, 'success');
 
-                // Reload user data and refresh the page
+                // Reload user data and refresh ALL relevant views
                 await UI.loadUserData();
-                UI.showBookDetails(bookId);
+                
+                // Refresh the current view to ensure UI is in sync
+                if (App.currentView === 'checkouts') {
+                    // If user is on checkouts page, refresh it completely
+                    await UI.showAllCheckouts();
+                } else if (App.currentView === 'dashboard') {
+                    // If user is on dashboard, refresh it
+                    UI.showDashboard();
+                } else {
+                    // Default: show book details
+                    UI.showBookDetails(bookId);
+                }
+                
+                // Force refresh ALL checkout-related displays for maximum synchronization
+                await UI.refreshAllCheckoutDisplays();
 
             } catch (error) {
                 document.getElementById('returnError').textContent = error.message;
@@ -2997,13 +3105,82 @@
                 // Show success message
                 Utils.showAlert('Review submitted successfully! Thank you for your feedback.', 'success');
 
-                // Reload user data and refresh the page
+                // Reload user data and refresh ALL relevant views
                 await UI.loadUserData();
-                UI.showBookDetails(bookId);
+                
+                // Refresh the current view to ensure UI is in sync
+                if (App.currentView === 'reviews') {
+                    // If user is on reviews page, refresh it
+                    UI.showMyReviews();
+                } else if (App.currentView === 'dashboard') {
+                    // If user is on dashboard, refresh it
+                    UI.showDashboard();
+                } else {
+                    // Default: show book details
+                    UI.showBookDetails(bookId);
+                }
 
             } catch (error) {
                 document.getElementById('reviewError').textContent = error.message;
                 document.getElementById('reviewError').classList.remove('d-none');
+            }
+        };
+
+        // Utility function to refresh all checkout-related displays
+        UI.refreshAllCheckoutDisplays = async () => {
+            try {
+                // Force refresh any active checkouts display
+                if (document.getElementById('checkoutsContainer')) {
+                    await UI.showAllCheckouts();
+                }
+                
+                // Also refresh dashboard if it's visible
+                if (App.currentView === 'dashboard') {
+                    UI.showDashboard();
+                }
+                
+                // Force refresh any book details that might show checkout status
+                if (App.currentBookId) {
+                    UI.showBookDetails(App.currentBookId);
+                }
+            } catch (error) {
+                console.error('Error refreshing checkout displays:', error);
+            }
+        };
+
+        // Global refresh function for maximum synchronization
+        UI.forceGlobalRefresh = async () => {
+            try {
+                console.log('🔄 Force refreshing all UI components...');
+                
+                // Reload all user data
+                await UI.loadUserData();
+                
+                // Refresh based on current view
+                switch (App.currentView) {
+                    case 'checkouts':
+                        await UI.showAllCheckouts();
+                        break;
+                    case 'dashboard':
+                        UI.showDashboard();
+                        break;
+                    case 'books':
+                        UI.showBooksPage();
+                        break;
+                    case 'reviews':
+                        UI.showMyReviews();
+                        break;
+                    case 'admin':
+                        UI.showAdminPanel();
+                        break;
+                    default:
+                        // If no specific view, refresh dashboard
+                        UI.showDashboard();
+                }
+                
+                console.log('✅ Global refresh completed');
+            } catch (error) {
+                console.error('❌ Error during global refresh:', error);
             }
         };
 
@@ -3108,13 +3285,58 @@
                         // Debug: Log the payload to see what's being sent
                         console.log('Adding book with payload:', payload);
                         
-                        await Utils.makeRequest('/admin/books', { method: 'POST', body: JSON.stringify(payload) });
-                        Utils.showAlert('Book added successfully.', 'success');
-                        // Refresh the current view to show the new book
-                        if (App.currentView === 'books') {
-                            UI.showBooksPage();
-                        } else if (App.currentView === 'dashboard') {
-                            UI.showDashboard();
+                        // Test cover image URL if provided
+                        if (payload.cover_image_url) {
+                            try {
+                                const imgTest = new Image();
+                                imgTest.onload = async () => {
+                                    // Image loads successfully, proceed with book addition
+                                    await Utils.makeRequest('/admin/books', { method: 'POST', body: JSON.stringify(payload) });
+                                    Utils.showAlert('Book added successfully with cover image!', 'success');
+                                    // Refresh the current view to show the new book
+                                    if (App.currentView === 'books') {
+                                        UI.showBooksPage();
+                                    } else if (App.currentView === 'dashboard') {
+                                        UI.showDashboard();
+                                    }
+                                };
+                                imgTest.onerror = async () => {
+                                    // Image failed to load, ask user if they want to continue
+                                    if (confirm('The cover image URL appears to be invalid. Do you want to add the book without a cover image?')) {
+                                        payload.cover_image_url = null;
+                                        await Utils.makeRequest('/admin/books', { method: 'POST', body: JSON.stringify(payload) });
+                                        Utils.showAlert('Book added successfully (without cover image).', 'success');
+                                        // Refresh the current view to show the new book
+                                        if (App.currentView === 'books') {
+                                            UI.showBooksPage();
+                                        } else if (App.currentView === 'dashboard') {
+                                            UI.showDashboard();
+                                        }
+                                    }
+                                };
+                                imgTest.src = payload.cover_image_url;
+                            } catch (error) {
+                                // If image test fails, proceed without cover image
+                                payload.cover_image_url = null;
+                                await Utils.makeRequest('/admin/books', { method: 'POST', body: JSON.stringify(payload) });
+                                Utils.showAlert('Book added successfully (without cover image).', 'success');
+                                // Refresh the current view to show the new book
+                                if (App.currentView === 'books') {
+                                    UI.showBooksPage();
+                                } else if (App.currentView === 'dashboard') {
+                                    UI.showDashboard();
+                                }
+                            }
+                        } else {
+                            // No cover image, proceed normally
+                            await Utils.makeRequest('/admin/books', { method: 'POST', body: JSON.stringify(payload) });
+                            Utils.showAlert('Book added successfully!', 'success');
+                            // Refresh the current view to show the new book
+                            if (App.currentView === 'books') {
+                                UI.showBooksPage();
+                            } else if (App.currentView === 'dashboard') {
+                                UI.showDashboard();
+                            }
                         }
                     } catch (err) { Utils.showAlert(err.message || 'Failed to add book', 'danger'); }
                 } else if (e.target && e.target.id === 'inventoryForm') {
@@ -3250,7 +3472,50 @@
                                 <div class="col-md-3"><label class="form-label">Pages</label><input id="add_pages" type="number" class="form-control"></div>
                                 <div class="col-12"><label class="form-label">Description</label><textarea id="add_description" class="form-control" rows="3"></textarea></div>
                                 <div class="col-md-3"><label class="form-label">Total Copies</label><input id="add_copies" type="number" class="form-control" value="1" min="1" required></div>
-                                <div class="col-md-3"><label class="form-label">Cover Image URL</label><input id="add_cover" class="form-control"></div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Cover Image URL</label>
+                                    <div class="input-group">
+                                        <input id="add_cover" class="form-control" placeholder="Paste image URL here...">
+                                        <button class="btn btn-outline-secondary" type="button" id="previewCoverBtn">
+                                            <i class="fas fa-eye"></i> Preview
+                                        </button>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Paste any image URL (e.g., from Google Images, your computer, or online storage)
+                                    </small>
+                                    <div class="mt-2">
+                                        <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="collapse" data-bs-target="#coverHelp">
+                                            <i class="fas fa-question-circle me-1"></i>How to get image URLs?
+                                        </button>
+                                        <div class="collapse mt-2" id="coverHelp">
+                                            <div class="card card-body bg-light">
+                                                <h6><i class="fas fa-lightbulb me-1"></i>Image URL Tips:</h6>
+                                                <ul class="mb-0 small">
+                                                    <li><strong>Google Images:</strong> Right-click image → "Copy image address"</li>
+                                                    <li><strong>Your Computer:</strong> Upload to Google Drive → Right-click → "Copy link"</li>
+                                                    <li><strong>Online Storage:</strong> Use services like Imgur, Dropbox, or OneDrive</li>
+                                                    <li><strong>Test First:</strong> Use the Preview button to verify the image loads</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="coverPreview" class="mt-2" style="display: none;">
+                                        <img id="coverPreviewImg" class="img-thumbnail" style="max-width: 150px; max-height: 200px;" alt="Cover Preview">
+                                        <div class="mt-1">
+                                            <small class="text-success">
+                                                <i class="fas fa-check-circle me-1"></i>
+                                                Image preview successful! This image will be displayed for the book.
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <div id="coverError" class="mt-2" style="display: none;">
+                                        <small class="text-danger">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>
+                                            <span id="coverErrorText">Image could not be loaded. Please check the URL.</span>
+                                        </small>
+                                    </div>
+                                </div>
                                 <div class="col-md-3 d-flex align-items-end"><div class="form-check"><input id="add_is_ebook" class="form-check-input" type="checkbox"><label class="form-check-label">eBook</label></div></div>
                                 <div class="col-12"><label class="form-label">Authors (separate by ';' e.g., 'Frank Herbert; Someone Else')</label><input id="add_authors" class="form-control" required></div>
                                 <div class="col-12"><button class="btn btn-primary" type="submit"><i class="fas fa-plus me-2"></i>Add Book</button></div>
@@ -3544,17 +3809,28 @@
 
         // Show all user checkouts
         UI.showAllCheckouts = async () => {
+            console.log('🔍 showAllCheckouts called');
             if (!App.user) {
                 Utils.showAlert('Please log in to view your checkouts.', 'warning');
                 return;
             }
+            
+            // Set current view
+            App.currentView = 'checkouts';
+            console.log('🔍 Set current view to:', App.currentView);
 
             document.getElementById('mainContent').innerHTML = `
                 <div class="container my-4">
                     <div class="row">
-                        <div class="col-12">
-                            <button class="btn btn-outline-secondary mb-3 back-to-dashboard-btn">
+                        <div class="col-12 d-flex justify-content-between align-items-center mb-3">
+                            <button class="btn btn-outline-secondary back-to-dashboard-btn">
                                 <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                            </button>
+                            <button class="btn btn-outline-primary refresh-checkouts-btn" onclick="UI.forceGlobalRefresh()">
+                                <i class="fas fa-sync-alt me-2"></i>Refresh
+                            </button>
+                            <button class="btn btn-outline-success test-return-btn" onclick="UI.showReturnModal(1, 'Test Book')">
+                                <i class="fas fa-test me-2"></i>Test Return
                             </button>
                         </div>
                     </div>
@@ -3636,7 +3912,10 @@
                                             </small>
                                         ` : ''}
                                         <br>
-                                        <button class="btn btn-warning btn-sm mt-2 return-btn" data-book-id="${checkout.book_id}" data-book-title="${checkout.title}">
+                                        <button class="btn btn-warning btn-sm mt-2 return-btn" 
+                                                data-book-id="${checkout.book_id}" 
+                                                data-book-title="${checkout.title}"
+                                                onclick="UI.showReturnModal(${checkout.book_id}, '${checkout.title.replace(/'/g, "\\'")}')">
                                             <i class="fas fa-undo me-1"></i>Return Book
                                         </button>
                                     `}
@@ -3651,6 +3930,277 @@
                     '<div class="alert alert-danger">Failed to load checkouts.</div>';
             }
         };
+        
+        // Add cover image preview functionality
+        document.addEventListener('click', async (e) => {
+            if (e.target && e.target.id === 'previewCoverBtn') {
+                e.preventDefault();
+                const coverUrl = document.getElementById('add_cover').value.trim();
+                const previewDiv = document.getElementById('coverPreview');
+                const errorDiv = document.getElementById('coverError');
+                const previewImg = document.getElementById('coverPreviewImg');
+                
+                if (!coverUrl) {
+                    Utils.showAlert('Please enter an image URL first.', 'warning');
+                    return;
+                }
+                
+                try {
+                    // Show loading state
+                    e.target.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+                    e.target.disabled = true;
+                    
+                    // Test the image URL
+                    const response = await fetch(coverUrl, { mode: 'no-cors' });
+                    
+                    // Hide error if it was showing
+                    errorDiv.style.display = 'none';
+                    
+                    // Set the image source and show preview
+                    previewImg.src = coverUrl;
+                    previewImg.onload = () => {
+                        previewDiv.style.display = 'block';
+                        e.target.innerHTML = '<i class="fas fa-eye"></i> Preview';
+                        e.target.disabled = false;
+                    };
+                    
+                    previewImg.onerror = () => {
+                        throw new Error('Image failed to load');
+                    };
+                    
+                } catch (error) {
+                    // Show error
+                    errorDiv.style.display = 'block';
+                    previewDiv.style.display = 'none';
+                    document.getElementById('coverErrorText').textContent = 
+                        'Image could not be loaded. Please check the URL and try again.';
+                    
+                    // Reset button
+                    e.target.innerHTML = '<i class="fas fa-eye"></i> Preview';
+                    e.target.disabled = false;
+                }
+            }
+        });
+        
+        // Clear preview when cover URL changes
+        const addCoverElement = document.getElementById('add_cover');
+        if (addCoverElement) {
+            addCoverElement.addEventListener('input', () => {
+                const previewDiv = document.getElementById('coverPreview');
+                const errorDiv = document.getElementById('coverError');
+                if (previewDiv) previewDiv.style.display = 'none';
+                if (errorDiv) errorDiv.style.display = 'none';
+            });
+        }
+
+        // Enhanced Image Loading System with Fallbacks and Retry Logic
+        class ImageLoader {
+            constructor() {
+                this.fallbackImages = {
+                    'default': 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOGY4Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIENvdmVyPC90ZXh0Pjwvc3ZnPg==',
+                    'error': 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZmZlNmU2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2QzMmEyYSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIEVycm9yPC90ZXh0Pjwvc3ZnPg==',
+                    'loading': 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOGY4Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzAwN2JmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkxvYWRpbmcuLi48L3RleHQ+PC9zdmc+'
+                };
+                this.imageCache = new Map();
+                this.retryAttempts = new Map();
+                this.maxRetries = 3;
+                this.retryDelay = 1000; // 1 second
+            }
+
+            // Load image with comprehensive error handling
+            async loadImage(imgElement, imageUrl, options = {}) {
+                const {
+                    fallbackOnError = true,
+                    showLoadingState = true,
+                    maxRetries = this.maxRetries,
+                    onSuccess = null,
+                    onError = null
+                } = options;
+
+                if (!imageUrl || imageUrl.trim() === '') {
+                    this.setFallbackImage(imgElement, 'default');
+                    if (onError) onError('No image URL provided');
+                    return false;
+                }
+
+                // Check cache first
+                if (this.imageCache.has(imageUrl)) {
+                    imgElement.src = this.imageCache.get(imageUrl);
+                    if (onSuccess) onSuccess();
+                    return true;
+                }
+
+                // Show loading state
+                if (showLoadingState) {
+                    imgElement.src = this.fallbackImages.loading;
+                }
+
+                try {
+                    const success = await this.loadImageWithRetry(imgElement, imageUrl, maxRetries);
+                    if (success) {
+                        // Cache successful image
+                        this.imageCache.set(imageUrl, imgElement.src);
+                        if (onSuccess) onSuccess();
+                        return true;
+                    } else {
+                        throw new Error('All retry attempts failed');
+                    }
+                } catch (error) {
+                    console.warn(`Image loading failed for ${imageUrl}:`, error.message);
+                    
+                    if (fallbackOnError) {
+                        this.setFallbackImage(imgElement, 'error');
+                    }
+                    
+                    if (onError) onError(error.message);
+                    return false;
+                }
+            }
+
+            // Load image with retry logic
+            async loadImageWithRetry(imgElement, imageUrl, maxRetries) {
+                for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                    try {
+                        const success = await this.loadSingleImage(imgElement, imageUrl);
+                        if (success) return true;
+                        
+                        if (attempt < maxRetries) {
+                            console.log(`Retry attempt ${attempt + 1} for ${imageUrl}`);
+                            await this.delay(this.retryDelay * attempt); // Exponential backoff
+                        }
+                    } catch (error) {
+                        console.warn(`Attempt ${attempt} failed for ${imageUrl}:`, error.message);
+                        if (attempt === maxRetries) throw error;
+                    }
+                }
+                return false;
+            }
+
+            // Load single image attempt
+            loadSingleImage(imgElement, imageUrl) {
+                return new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        reject(new Error('Image loading timeout'));
+                    }, 10000); // 10 second timeout
+
+                    const img = new Image();
+                    
+                    img.onload = () => {
+                        clearTimeout(timeout);
+                        imgElement.src = img.src;
+                        resolve(true);
+                    };
+                    
+                    img.onerror = () => {
+                        clearTimeout(timeout);
+                        reject(new Error('Image failed to load'));
+                    };
+                    
+                    // Add crossOrigin for CORS issues
+                    img.crossOrigin = 'anonymous';
+                    img.src = imageUrl;
+                });
+            }
+
+            // Set fallback image
+            setFallbackImage(imgElement, type) {
+                imgElement.src = this.fallbackImages[type] || this.fallbackImages.default;
+                imgElement.alt = type === 'error' ? 'Image failed to load' : 'No cover image';
+            }
+
+            // Delay utility
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            // Preload images for better performance
+            preloadImages(imageUrls) {
+                imageUrls.forEach(url => {
+                    if (url && !this.imageCache.has(url)) {
+                        const img = new Image();
+                        img.onload = () => this.imageCache.set(url, url);
+                        img.onerror = () => console.warn(`Failed to preload: ${url}`);
+                        img.src = url;
+                    }
+                });
+            }
+
+            // Clear cache
+            clearCache() {
+                this.imageCache.clear();
+                this.retryAttempts.clear();
+            }
+        }
+
+        // Initialize global image loader
+        const imageLoader = new ImageLoader();
+
+        // Enhanced image loading function
+        function loadBookCover(imgElement, imageUrl, options = {}) {
+            return imageLoader.loadImage(imgElement, imageUrl, {
+                fallbackOnError: true,
+                showLoadingState: true,
+                maxRetries: 3,
+                onSuccess: () => {
+                    console.log(`✅ Image loaded successfully: ${imageUrl}`);
+                },
+                onError: (error) => {
+                    console.warn(`❌ Image loading failed: ${imageUrl} - ${error}`);
+                }
+            });
+        }
+
+        // Process all book cover images in the current view
+        function processBookCoverImages() {
+            const images = document.querySelectorAll('img[data-cover-url]');
+            images.forEach(img => {
+                const coverUrl = img.getAttribute('data-cover-url');
+                if (coverUrl && coverUrl.trim() !== '') {
+                    loadBookCover(img, coverUrl);
+                } else {
+                    // Set default fallback for images without URLs
+                    imageLoader.setFallbackImage(img, 'default');
+                }
+            });
+        }
+
+        // Enhanced image loading with mutation observer for dynamic content
+        function initializeImageLoading() {
+            // Process existing images
+            processBookCoverImages();
+            
+            // Watch for new images added to the DOM
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'childList') {
+                        mutation.addedNodes.forEach((node) => {
+                            if (node.nodeType === Node.ELEMENT_NODE) {
+                                // Check if the added node has images
+                                const images = node.querySelectorAll ? node.querySelectorAll('img[data-cover-url]') : [];
+                                if (node.matches && node.matches('img[data-cover-url]')) {
+                                    images.push(node);
+                                }
+                                
+                                images.forEach(img => {
+                                    const coverUrl = img.getAttribute('data-cover-url');
+                                    if (coverUrl && coverUrl.trim() !== '') {
+                                        loadBookCover(img, coverUrl);
+                                    } else {
+                                        imageLoader.setFallbackImage(img, 'default');
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+            
+            // Start observing
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        }
     </script>
 </body>
 </html>

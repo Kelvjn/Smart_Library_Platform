@@ -15,7 +15,26 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 require('dotenv').config();
 
-const { testConnections, closeConnections, healthCheck, initializeMongoDB } = require('./config/database');
+const { testConnections, closeConnections, healthCheck, getPoolStatus, initializeMongoDB } = require('./config/database');
+
+// Port availability check function
+const isPortAvailable = (port) => {
+    return new Promise((resolve) => {
+        const net = require('net');
+        const server = net.createServer();
+        
+        server.listen(port, () => {
+            server.once('close', () => {
+                resolve(true);
+            });
+            server.close();
+        });
+        
+        server.on('error', () => {
+            resolve(false);
+        });
+    });
+};
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -43,9 +62,17 @@ app.use(helmet({
             connectSrc: ["'self'"],
             objectSrc: ["'none'"],
             mediaSrc: ["'self'"],
-            frameSrc: ["'none'"]
+            frameSrc: ["'none'"],
+            upgradeInsecureRequests: []
         }
-    }
+    },
+    hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true
+    },
+    noSniff: true,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
 
 // Rate limiting - more permissive for development
@@ -89,7 +116,20 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Request logging middleware
 app.use((req, res, next) => {
     const timestamp = new Date().toISOString();
-    console.log(`${timestamp} - ${req.method} ${req.url} - IP: ${req.ip}`);
+    const userAgent = req.get('User-Agent') || 'Unknown';
+    const ip = req.ip || req.connection.remoteAddress || 'Unknown';
+    
+    console.log(`${timestamp} - ${req.method} ${req.url} - IP: ${ip} - User-Agent: ${userAgent.substring(0, 100)}`);
+    
+    // Add request start time for performance monitoring
+    req.startTime = Date.now();
+    
+    // Log response time when request completes
+    res.on('finish', () => {
+        const duration = Date.now() - req.startTime;
+        console.log(`${timestamp} - ${req.method} ${req.url} - Status: ${res.statusCode} - Duration: ${duration}ms`);
+    });
+    
     next();
 });
 
@@ -115,6 +155,25 @@ app.get('/health', async (req, res) => {
             status: 'unhealthy',
             error: error.message,
             timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Pool status endpoint
+app.get('/pool-status', (req, res) => {
+    try {
+        const poolStatus = getPoolStatus();
+        res.json({
+            timestamp: new Date().toISOString(),
+            pools: poolStatus
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: {
+                message: 'Failed to get pool status',
+                details: error.message,
+                timestamp: new Date().toISOString()
+            }
         });
     }
 });
@@ -178,7 +237,9 @@ app.get('/img', async (req, res) => {
                 
                 if (upstream.statusCode && upstream.statusCode >= 400) {
                     console.error(`Image proxy error ${upstream.statusCode} for ${imageUrl}`);
-                    res.status(upstream.statusCode).end();
+                    if (!res.headersSent) {
+                        res.status(upstream.statusCode).end();
+                    }
                     upstream.resume();
                     return;
                 }
@@ -193,17 +254,28 @@ app.get('/img', async (req, res) => {
                 }
                 
                 upstream.pipe(res);
+                
+                upstream.on('error', (err) => {
+                    console.error('Image proxy upstream error:', err.message);
+                    if (!res.headersSent) {
+                        res.status(502).send('Upstream error');
+                    }
+                });
             });
 
             request.on('error', (err) => {
                 console.error('Image proxy request error:', err.message);
-                res.status(502).send('Proxy error');
+                if (!res.headersSent) {
+                    res.status(502).send('Proxy error');
+                }
             });
             
             request.setTimeout(10000, () => {
                 console.error('Image proxy timeout for:', imageUrl);
                 request.destroy();
-                res.status(504).send('Timeout');
+                if (!res.headersSent) {
+                    res.status(504).send('Timeout');
+                }
             });
         } else {
             res.status(403).send('Host not allowed: ' + parsed.host);
@@ -345,21 +417,51 @@ async function startServer() {
         
         console.log('Database connections established successfully');
         
+        // Check if port is available before starting server
+        const portAvailable = await isPortAvailable(PORT);
+        if (!portAvailable) {
+            console.error(`❌ Port ${PORT} is not available.`);
+            console.log('💡 Please try one of these solutions:');
+            console.log('   1. Stop any other services using port 3000');
+            console.log('   2. Change the PORT in your .env file');
+            console.log('   3. Wait a few seconds and try again');
+            process.exit(1);
+        }
+        
         // Start the server
         const server = app.listen(PORT, () => {
             console.log(`
 🚀 Smart Library Platform Server Started
 📍 Server running on port ${PORT}
 🌍 Environment: ${process.env.NODE_ENV || 'development'}
-📊 Health check: http://localhost:${PORT}/health
+        📊 Health check: http://localhost:${PORT}/health
+        🔌 Pool status: http://localhost:${PORT}/pool-status
 📚 API docs: http://localhost:${PORT}/api
 🏠 Web app: http://localhost:${PORT}
             `);
+        }).on('error', (error) => {
+            if (error.code === 'EADDRINUSE') {
+                console.error(`❌ Port ${PORT} is already in use.`);
+                console.log('💡 Solutions:');
+                console.log('   1. Stop any other services using port 3000');
+                console.log('   2. Change the PORT in your .env file');
+                console.log('   3. Wait a few seconds and try again');
+                process.exit(1);
+            } else {
+                console.error('❌ Server failed to start:', error.message);
+                process.exit(1);
+            }
         });
 
         // Graceful shutdown
         const gracefulShutdown = async (signal) => {
             console.log(`\n${signal} received. Starting graceful shutdown...`);
+            
+            // Set a timeout for graceful shutdown
+            const shutdownTimeout = setTimeout(() => {
+                console.error('Forced shutdown due to timeout');
+                process.exit(1);
+            }, 30000); // 30 seconds timeout
             
             server.close(async () => {
                 console.log('HTTP server closed');
@@ -367,12 +469,21 @@ async function startServer() {
                 try {
                     await closeConnections();
                     console.log('Database connections closed');
+                    clearTimeout(shutdownTimeout);
                     console.log('Graceful shutdown completed');
                     process.exit(0);
                 } catch (error) {
                     console.error('Error during shutdown:', error);
+                    clearTimeout(shutdownTimeout);
                     process.exit(1);
                 }
+            });
+            
+            // Handle cases where server.close() doesn't work
+            server.on('error', (error) => {
+                console.error('Server error during shutdown:', error);
+                clearTimeout(shutdownTimeout);
+                process.exit(1);
             });
         };
 
