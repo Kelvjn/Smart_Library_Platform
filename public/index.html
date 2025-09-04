@@ -1823,6 +1823,319 @@
                 UI.loadBooks(1, search, genre, sortBy);
             },
 
+            showAnalyticsPage: async () => {
+                // Check if user is staff or admin
+                if (!App.user || (App.user.user_type !== 'staff' && App.user.user_type !== 'admin')) {
+                    document.getElementById('mainContent').innerHTML = `
+                        <div class="container my-4">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Access denied. Analytics dashboard is only available for staff and admin members.
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                document.getElementById('mainContent').innerHTML = `
+                    <div class="container my-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2><i class="fas fa-chart-bar me-2"></i>Reading Analytics Dashboard</h2>
+                            <button class="btn btn-outline-primary" id="refreshAnalytics">
+                                <i class="fas fa-sync-alt me-2"></i>Refresh Data
+                            </button>
+                        </div>
+
+                        <!-- Analytics Tabs -->
+                        <ul class="nav nav-tabs mb-4" id="analyticsTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">
+                                    <i class="fas fa-tachometer-alt me-2"></i>Overview
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="session-time-tab" data-bs-toggle="tab" data-bs-target="#session-time" type="button" role="tab">
+                                    <i class="fas fa-clock me-2"></i>Session Time
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="highlights-tab" data-bs-toggle="tab" data-bs-target="#highlights" type="button" role="tab">
+                                    <i class="fas fa-highlighter me-2"></i>Highlights
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="top-books-tab" data-bs-toggle="tab" data-bs-target="#top-books" type="button" role="tab">
+                                    <i class="fas fa-book me-2"></i>Top Books
+                                </button>
+                            </li>
+                        </ul>
+
+                        <!-- Tab Content -->
+                        <div class="tab-content" id="analyticsTabContent">
+                            <!-- Overview Tab -->
+                            <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <i class="fas fa-users fa-2x text-primary mb-2"></i>
+                                                <h5 class="card-title" id="totalUsersAnalytics">-</h5>
+                                                <p class="card-text">Active Readers</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <i class="fas fa-book-open fa-2x text-success mb-2"></i>
+                                                <h5 class="card-title" id="totalSessionsAnalytics">-</h5>
+                                                <p class="card-text">Reading Sessions</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <i class="fas fa-highlighter fa-2x text-warning mb-2"></i>
+                                                <h5 class="card-title" id="totalHighlightsAnalytics">-</h5>
+                                                <p class="card-text">Total Highlights</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <i class="fas fa-clock fa-2x text-info mb-2"></i>
+                                                <h5 class="card-title" id="totalReadingTimeAnalytics">-</h5>
+                                                <p class="card-text">Hours Read</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row mt-4">
+                                    <div class="col-md-6">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h5 class="mb-0"><i class="fas fa-mobile-alt me-2"></i>Device Usage</h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <div id="deviceUsageChart">
+                                                    <div class="text-center">
+                                                        <div class="spinner-border" role="status">
+                                                            <span class="visually-hidden">Loading...</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h5 class="mb-0"><i class="fas fa-star me-2"></i>Recent Highlights</h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <div id="recentHighlights">
+                                                    <div class="text-center">
+                                                        <div class="spinner-border" role="status">
+                                                            <span class="visually-hidden">Loading...</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Session Time Tab -->
+                            <div class="tab-pane fade" id="session-time" role="tabpanel">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Average Session Time Per User</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="sessionTimeData">
+                                            <div class="text-center">
+                                                <div class="spinner-border" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Highlights Tab -->
+                            <div class="tab-pane fade" id="highlights" role="tabpanel">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0"><i class="fas fa-highlighter me-2"></i>Most Highlighted Books</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="highlightsData">
+                                            <div class="text-center">
+                                                <div class="spinner-border" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Top Books Tab -->
+                            <div class="tab-pane fade" id="top-books" role="tabpanel">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0"><i class="fas fa-book me-2"></i>Top 10 Books by Total Reading Time</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="topBooksData">
+                                            <div class="text-center">
+                                                <div class="spinner-border" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Load analytics data
+                await UI.loadAnalyticsData();
+            },
+
+            loadAnalyticsData: async () => {
+                try {
+                    // Load overview data
+                    const [dashboardData, userEngagement, highlightsData, bookPopularity] = await Promise.all([
+                        Utils.makeRequest('/analytics/dashboard'),
+                        Utils.makeRequest('/analytics/user-engagement?limit=10'),
+                        Utils.makeRequest('/analytics/highlights?limit=10'),
+                        Utils.makeRequest('/analytics/book-popularity?limit=10&metric=reading_time')
+                    ]);
+
+                    // Update overview cards
+                    document.getElementById('totalUsersAnalytics').textContent = dashboardData.dashboard.summary.unique_users_today || 0;
+                    document.getElementById('totalSessionsAnalytics').textContent = dashboardData.dashboard.summary.total_sessions || 0;
+                    document.getElementById('totalHighlightsAnalytics').textContent = highlightsData.popular_highlights.length || 0;
+                    document.getElementById('totalReadingTimeAnalytics').textContent = 
+                        Math.round((dashboardData.dashboard.summary.total_reading_time_today || 0) / 60 * 10) / 10;
+
+                    // Update device usage chart
+                    const deviceUsage = dashboardData.dashboard.device_distribution;
+                    const deviceUsageHtml = Object.entries(deviceUsage).map(([device, count]) => `
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span><i class="fas fa-${device === 'mobile' ? 'mobile-alt' : device === 'tablet' ? 'tablet-alt' : device === 'desktop' ? 'desktop' : 'book'} me-2"></i>${device.charAt(0).toUpperCase() + device.slice(1)}</span>
+                            <span class="badge bg-primary">${count} sessions</span>
+                        </div>
+                    `).join('');
+                    document.getElementById('deviceUsageChart').innerHTML = deviceUsageHtml || '<p class="text-muted">No device data available</p>';
+
+                    // Update recent highlights
+                    const recentHighlights = dashboardData.dashboard.recent_highlights || [];
+                    const highlightsHtml = recentHighlights.map(highlight => `
+                        <div class="border-bottom pb-2 mb-2">
+                            <small class="text-muted">Book ${highlight.book_id} - Page ${highlight.highlight_page}</small>
+                            <p class="mb-1">"${highlight.highlight_text.substring(0, 100)}${highlight.highlight_text.length > 100 ? '...' : ''}"</p>
+                            <small class="text-muted">
+                                <i class="fas fa-${highlight.highlight_color === 'yellow' ? 'highlighter' : 'paint-brush'} me-1"></i>
+                                ${highlight.highlight_color} highlight
+                            </small>
+                        </div>
+                    `).join('');
+                    document.getElementById('recentHighlights').innerHTML = highlightsHtml || '<p class="text-muted">No recent highlights</p>';
+
+                    // Update session time data
+                    const sessionTimeHtml = userEngagement.user_engagement.map(user => `
+                        <div class="row border-bottom py-2">
+                            <div class="col-md-3">
+                                <strong>User ${user.user_id}</strong>
+                            </div>
+                            <div class="col-md-3">
+                                <span class="badge bg-info">${user.average_session_duration_minutes.toFixed(1)} min avg</span>
+                            </div>
+                            <div class="col-md-3">
+                                <span class="badge bg-success">${user.total_sessions} sessions</span>
+                            </div>
+                            <div class="col-md-3">
+                                <span class="badge bg-warning">${user.hours_read} hours total</span>
+                            </div>
+                        </div>
+                    `).join('');
+                    document.getElementById('sessionTimeData').innerHTML = sessionTimeHtml || '<p class="text-muted">No session data available</p>';
+
+                    // Update highlights data
+                    const highlightsTableHtml = highlightsData.popular_highlights.map((highlight, index) => `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>Book ${highlight.book_id}</td>
+                            <td>"${highlight.highlight_text.substring(0, 80)}${highlight.highlight_text.length > 80 ? '...' : ''}"</td>
+                            <td><span class="badge bg-primary">${highlight.highlight_count}</span></td>
+                            <td><span class="badge bg-secondary">${highlight.unique_users_count} users</span></td>
+                        </tr>
+                    `).join('');
+                    document.getElementById('highlightsData').innerHTML = `
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Book ID</th>
+                                        <th>Highlight Text</th>
+                                        <th>Count</th>
+                                        <th>Users</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${highlightsTableHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+
+                    // Update top books data
+                    const topBooksHtml = bookPopularity.book_popularity.map((book, index) => `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>Book ${book.book_id}</td>
+                            <td><span class="badge bg-success">${book.hours_read} hours</span></td>
+                            <td><span class="badge bg-info">${book.total_sessions} sessions</span></td>
+                            <td><span class="badge bg-warning">${book.unique_readers_count} readers</span></td>
+                            <td><span class="badge bg-primary">${book.total_pages_read} pages</span></td>
+                        </tr>
+                    `).join('');
+                    document.getElementById('topBooksData').innerHTML = `
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Book ID</th>
+                                        <th>Reading Time</th>
+                                        <th>Sessions</th>
+                                        <th>Readers</th>
+                                        <th>Pages Read</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${topBooksHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+
+                } catch (error) {
+                    console.error('Error loading analytics data:', error);
+                    Utils.showAlert('Failed to load analytics data', 'danger');
+                }
+            },
+
             showBookDetails: async (bookId) => {
                 document.getElementById('mainContent').innerHTML = `
                     <div class="container my-4">
@@ -2424,6 +2737,12 @@
                 UI.showBooksPage();
             });
 
+            document.getElementById('navAnalytics').addEventListener('click', (e) => {
+                e.preventDefault();
+                App.currentView = 'analytics';
+                UI.showAnalyticsPage();
+            });
+
             document.getElementById('navDashboard')?.addEventListener('click', (e) => {
                 e.preventDefault();
                 App.currentView = 'dashboard';
@@ -2559,6 +2878,10 @@
                     UI.showDashboard();
                 } else if (e.target.classList.contains('browse-books-btn')) {
                     UI.showBooksPage();
+                } else if (e.target.id === 'refreshAnalytics' || e.target.closest('#refreshAnalytics')) {
+                    e.preventDefault();
+                    await UI.loadAnalyticsData();
+                    Utils.showAlert('Analytics data refreshed!', 'success');
                 }
             });
 
@@ -3166,6 +3489,9 @@
                         break;
                     case 'books':
                         UI.showBooksPage();
+                        break;
+                    case 'analytics':
+                        UI.showAnalyticsPage();
                         break;
                     case 'reviews':
                         UI.showMyReviews();

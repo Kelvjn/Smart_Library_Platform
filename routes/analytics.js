@@ -231,7 +231,7 @@ router.put('/reading-sessions/:id', authenticate, async (req, res) => {
 });
 
 // GET /api/analytics/user-engagement - Get user engagement analytics
-router.get('/user-engagement', requireStaff, async (req, res) => {
+router.get('/user-engagement', authenticate, requireStaff, async (req, res) => {
     try {
         const { user_id, limit = 20 } = req.query;
         
@@ -514,7 +514,7 @@ router.get('/book-popularity', optionalAuth, async (req, res) => {
 });
 
 // GET /api/analytics/reading-patterns - Get reading patterns analytics
-router.get('/reading-patterns', requireStaff, async (req, res) => {
+router.get('/reading-patterns', authenticate, requireStaff, async (req, res) => {
     try {
         const { pattern_type = 'time_of_day' } = req.query;
         
@@ -685,7 +685,7 @@ router.get('/reading-patterns', requireStaff, async (req, res) => {
 });
 
 // GET /api/analytics/highlights - Get highlight analytics
-router.get('/highlights', requireStaff, async (req, res) => {
+router.get('/highlights', authenticate, requireStaff, async (req, res) => {
     try {
         const { book_id, limit = 20 } = req.query;
         
@@ -774,7 +774,7 @@ router.get('/highlights', requireStaff, async (req, res) => {
 });
 
 // GET /api/analytics/dashboard - Get dashboard summary analytics
-router.get('/dashboard', requireStaff, async (req, res) => {
+router.get('/dashboard', authenticate, requireStaff, async (req, res) => {
     try {
         // Get basic statistics
         const totalSessions = await readingSessionsOps.countDocuments();
