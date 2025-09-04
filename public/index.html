@@ -3243,6 +3243,17 @@
                 if (e.target && e.target.id === 'addBookForm') {
                     e.preventDefault();
                     try {
+                        // If a file is selected, convert it to a data URL for upload
+                        const fileInput = document.getElementById('add_cover_file');
+                        let coverDataUrl = null;
+                        if (fileInput && fileInput.files && fileInput.files[0]) {
+                            coverDataUrl = await new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = () => resolve(reader.result);
+                                reader.onerror = reject;
+                                reader.readAsDataURL(fileInput.files[0]);
+                            });
+                        }
                         const authorsRaw = document.getElementById('add_authors').value.trim();
                         const authors = authorsRaw ? authorsRaw.split(';').map(s => s.trim()).filter(Boolean).map(name => ({ name })) : [];
                         const payload = {
@@ -3278,7 +3289,7 @@
                             description: document.getElementById('add_description').value.trim() || null,
                             total_copies: parseInt(document.getElementById('add_copies').value) || 1,
                             is_ebook: document.getElementById('add_is_ebook').checked,
-                            cover_image_url: document.getElementById('add_cover').value.trim() || null,
+                            cover_image_url: coverDataUrl || (document.getElementById('add_cover').value.trim() || null),
                             authors
                         };
                         
@@ -3473,16 +3484,17 @@
                                 <div class="col-12"><label class="form-label">Description</label><textarea id="add_description" class="form-control" rows="3"></textarea></div>
                                 <div class="col-md-3"><label class="form-label">Total Copies</label><input id="add_copies" type="number" class="form-control" value="1" min="1" required></div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Cover Image URL</label>
+                                    <label class="form-label">Cover Image</label>
                                     <div class="input-group">
                                         <input id="add_cover" class="form-control" placeholder="Paste image URL here...">
                                         <button class="btn btn-outline-secondary" type="button" id="previewCoverBtn">
                                             <i class="fas fa-eye"></i> Preview
                                         </button>
+                                        <input id="add_cover_file" type="file" accept="image/*" class="form-control" style="max-width: 260px;" />
                                     </div>
                                     <small class="form-text text-muted">
                                         <i class="fas fa-info-circle me-1"></i>
-                                        Paste any image URL (e.g., from Google Images, your computer, or online storage)
+                                        Paste any image URL, or upload from your computer.
                                     </small>
                                     <div class="mt-2">
                                         <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="collapse" data-bs-target="#coverHelp">

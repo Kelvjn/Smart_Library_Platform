@@ -418,7 +418,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
                 ...book,
                 authors: authors.map(author => ({
                     author_id: author.author_id,
-                    name: author.name,
+                    name: `${author.first_name || ''} ${author.last_name || ''}`.trim(),
                     order: author.author_order
                 })),
                 is_available: Boolean(isAvailable),

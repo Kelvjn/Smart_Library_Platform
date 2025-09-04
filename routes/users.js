@@ -520,15 +520,14 @@ router.get('/:id/dashboard', authenticate, verifyOwnership('id'), async (req, re
                 COUNT(c.checkout_id) as total_checkouts,
                 COUNT(DISTINCT b.book_id) as unique_books_read,
                 COUNT(DISTINCT b.genre) as genres_explored,
-                COUNT(r.review_id) as total_reviews,
-                AVG(r.rating) as average_rating_given,
+                (SELECT COUNT(*) FROM reviews WHERE user_id = ?) as total_reviews,
+                (SELECT AVG(rating) FROM reviews WHERE user_id = ?) as average_rating_given,
                 COUNT(CASE WHEN c.is_late = TRUE THEN 1 END) as late_returns,
                 SUM(c.late_fee) as total_late_fees
             FROM checkouts c
             JOIN books b ON c.book_id = b.book_id
-            LEFT JOIN reviews r ON b.book_id = r.book_id AND r.user_id = c.user_id
             WHERE c.user_id = ?
-        `, [userId]);
+        `, [userId, userId, userId]);
         
         // Get recent reviews
         const [recentReviews] = await connection.execute(`
@@ -561,18 +560,28 @@ router.get('/:id/dashboard', authenticate, verifyOwnership('id'), async (req, re
             SELECT 
                 COUNT(DISTINCT b.book_id) as books_read_this_year,
                 COUNT(c.checkout_id) as checkouts_this_year,
-                COUNT(r.review_id) as reviews_this_year
+                (SELECT COUNT(*) FROM reviews WHERE user_id = ? AND YEAR(review_date) = ?) as reviews_this_year
             FROM checkouts c
             JOIN books b ON c.book_id = b.book_id
-            LEFT JOIN reviews r ON b.book_id = r.book_id AND r.user_id = c.user_id AND YEAR(r.review_date) = ?
             WHERE c.user_id = ? AND YEAR(c.checkout_date) = ?
-        `, [currentYear, userId, currentYear]);
+        `, [userId, currentYear, userId, currentYear]);
         
-        // Format the response
+        // Format the response - convert string numbers to actual numbers
         const dashboardData = {
-            user_statistics: userStats[0],
+            user_statistics: {
+                active_checkouts: parseInt(userStats[0].active_checkouts) || 0,
+                total_checkouts: parseInt(userStats[0].total_checkouts) || 0,
+                unique_books_read: parseInt(userStats[0].unique_books_read) || 0,
+                genres_explored: parseInt(userStats[0].genres_explored) || 0,
+                total_reviews: parseInt(userStats[0].total_reviews) || 0,
+                average_rating_given: parseFloat(userStats[0].average_rating_given) || 0,
+                late_returns: parseInt(userStats[0].late_returns) || 0,
+                total_late_fees: parseFloat(userStats[0].total_late_fees) || 0
+            },
             yearly_progress: {
-                ...yearlyProgress[0],
+                books_read_this_year: parseInt(yearlyProgress[0].books_read_this_year) || 0,
+                checkouts_this_year: parseInt(yearlyProgress[0].checkouts_this_year) || 0,
+                reviews_this_year: parseInt(yearlyProgress[0].reviews_this_year) || 0,
                 year: currentYear
             },
             active_checkouts: activeCheckouts.map(checkout => ({

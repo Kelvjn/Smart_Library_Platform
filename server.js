@@ -17,7 +17,7 @@ require('dotenv').config();
 
 const { testConnections, closeConnections, healthCheck, getPoolStatus, initializeMongoDB } = require('./config/database');
 
-// Port availability check function
+// Enhanced port management functions
 const isPortAvailable = (port) => {
     return new Promise((resolve) => {
         const net = require('net');
@@ -34,6 +34,70 @@ const isPortAvailable = (port) => {
             resolve(false);
         });
     });
+};
+
+// Kill processes on a specific port (Windows)
+const killProcessOnPort = async (port) => {
+    return new Promise((resolve) => {
+        const { exec } = require('child_process');
+        exec(`netstat -ano | findstr :${port}`, (error, stdout) => {
+            if (error || !stdout.trim()) {
+                resolve(false);
+                return;
+            }
+            
+            const lines = stdout.trim().split('\n');
+            const pids = new Set();
+            
+            lines.forEach(line => {
+                const parts = line.trim().split(/\s+/);
+                if (parts.length >= 5) {
+                    const pid = parts[parts.length - 1];
+                    if (pid && pid !== '0') {
+                        pids.add(pid);
+                    }
+                }
+            });
+            
+            if (pids.size === 0) {
+                resolve(false);
+                return;
+            }
+            
+            console.log(`🔧 Found ${pids.size} process(es) using port ${port}, attempting to terminate...`);
+            
+            let completed = 0;
+            const total = pids.size;
+            
+            pids.forEach(pid => {
+                exec(`taskkill /F /PID ${pid}`, (killError) => {
+                    completed++;
+                    if (killError) {
+                        console.log(`⚠️  Could not kill process ${pid}: ${killError.message}`);
+                    } else {
+                        console.log(`✅ Terminated process ${pid}`);
+                    }
+                    
+                    if (completed === total) {
+                        // Wait a moment for processes to fully terminate
+                        setTimeout(() => resolve(true), 2000);
+                    }
+                });
+            });
+        });
+    });
+};
+
+// Find next available port
+const findAvailablePort = async (startPort, maxAttempts = 10) => {
+    for (let i = 0; i < maxAttempts; i++) {
+        const port = startPort + i;
+        const available = await isPortAvailable(port);
+        if (available) {
+            return port;
+        }
+    }
+    return null;
 };
 
 // Import routes
@@ -108,10 +172,12 @@ app.use(cors({
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Static files
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -417,35 +483,60 @@ async function startServer() {
         
         console.log('Database connections established successfully');
         
-        // Check if port is available before starting server
+        // Enhanced port conflict resolution
+        let finalPort = PORT;
         const portAvailable = await isPortAvailable(PORT);
+        
         if (!portAvailable) {
-            console.error(`❌ Port ${PORT} is not available.`);
-            console.log('💡 Please try one of these solutions:');
-            console.log('   1. Stop any other services using port 3000');
-            console.log('   2. Change the PORT in your .env file');
-            console.log('   3. Wait a few seconds and try again');
-            process.exit(1);
+            console.log(`⚠️  Port ${PORT} is not available. Attempting automatic resolution...`);
+            
+            // Try to kill processes on the port
+            const killed = await killProcessOnPort(PORT);
+            if (killed) {
+                console.log(`✅ Successfully cleared port ${PORT}`);
+                // Wait a moment for the port to be fully released
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                
+                // Check if port is now available
+                const nowAvailable = await isPortAvailable(PORT);
+                if (nowAvailable) {
+                    console.log(`✅ Port ${PORT} is now available`);
+                } else {
+                    console.log(`⚠️  Port ${PORT} still not available, finding alternative...`);
+                    finalPort = await findAvailablePort(PORT);
+                    if (!finalPort) {
+                        console.error(`❌ Could not find any available port starting from ${PORT}`);
+                        process.exit(1);
+                    }
+                    console.log(`✅ Found available port: ${finalPort}`);
+                }
+            } else {
+                console.log(`⚠️  Could not clear port ${PORT}, finding alternative...`);
+                finalPort = await findAvailablePort(PORT);
+                if (!finalPort) {
+                    console.error(`❌ Could not find any available port starting from ${PORT}`);
+                    process.exit(1);
+                }
+                console.log(`✅ Found available port: ${finalPort}`);
+            }
         }
         
         // Start the server
-        const server = app.listen(PORT, () => {
+        const server = app.listen(finalPort, () => {
             console.log(`
 🚀 Smart Library Platform Server Started
-📍 Server running on port ${PORT}
+📍 Server running on port ${finalPort}
 🌍 Environment: ${process.env.NODE_ENV || 'development'}
-        📊 Health check: http://localhost:${PORT}/health
-        🔌 Pool status: http://localhost:${PORT}/pool-status
-📚 API docs: http://localhost:${PORT}/api
-🏠 Web app: http://localhost:${PORT}
+        📊 Health check: http://localhost:${finalPort}/health
+        🔌 Pool status: http://localhost:${finalPort}/pool-status
+📚 API docs: http://localhost:${finalPort}/api
+🏠 Web app: http://localhost:${finalPort}
             `);
         }).on('error', (error) => {
             if (error.code === 'EADDRINUSE') {
-                console.error(`❌ Port ${PORT} is already in use.`);
-                console.log('💡 Solutions:');
-                console.log('   1. Stop any other services using port 3000');
-                console.log('   2. Change the PORT in your .env file');
-                console.log('   3. Wait a few seconds and try again');
+                console.error(`❌ Port ${finalPort} is still in use after resolution attempts.`);
+                console.log('💡 This should not happen with the enhanced port management.');
+                console.log('   Please check for system-level port conflicts.');
                 process.exit(1);
             } else {
                 console.error('❌ Server failed to start:', error.message);

@@ -1,6 +1,8 @@
 // Smart Library Platform - Admin Routes (UPDATED FOR ACTUAL SCHEMA)
 const express = require('express');
 const { getMySQLConnection } = require('../config/database');
+const fs = require('fs');
+const path = require('path');
 const { authenticate, requireStaff } = require('../middleware/auth');
 
 const router = express.Router();
@@ -44,33 +46,111 @@ router.post('/books', authenticate, requireStaff, async (req, res) => {
             });
         }
         
+        // Prevent duplicate books by ISBN – if exists, auto-increase inventory instead of failing
+        try {
+            if (isbn) {
+                const [dupesByIsbn] = await connection.execute(
+                    'SELECT book_id, total_copies, available_copies FROM books WHERE isbn = ? LIMIT 1', [isbn]
+                );
+                if (dupesByIsbn.length > 0) {
+                    const dup = dupesByIsbn[0];
+                    const incrementBy = Number(total_copies) || 1;
+                    const newTotals = {
+                        total_copies: dup.total_copies + incrementBy,
+                        available_copies: dup.available_copies + incrementBy
+                    };
+                    await connection.execute(
+                        'UPDATE books SET total_copies = ?, available_copies = ? WHERE book_id = ?',
+                        [newTotals.total_copies, newTotals.available_copies, dup.book_id]
+                    );
+                    try {
+                        await connection.execute(
+                            'INSERT INTO staff_logs (staff_id, action_type, target_type, target_id, action_description, old_values, new_values) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                            [req.user.user_id, 'update_inventory', 'book', dup.book_id, 'Auto-increment inventory on duplicate ISBN', JSON.stringify({ total_copies: dup.total_copies, available_copies: dup.available_copies }), JSON.stringify(newTotals)]
+                        );
+                    } catch (e) {}
+                    const [bookDetails] = await connection.execute('SELECT * FROM books WHERE book_id = ?', [dup.book_id]);
+                    return res.status(200).json({ message: 'Existing book found. Inventory increased.', book: bookDetails[0] });
+                }
+            }
+        } catch (dupErr) {
+            // If schema varies, continue with normal insert
+        }
+
         await connection.beginTransaction();
         
         try {
-            // Insert the book
-            const [bookResult] = await connection.execute(`
-                INSERT INTO books (
-                    title, isbn, publisher, publication_date, genre, language, 
-                    pages, description, total_copies, available_copies, is_ebook, 
-                    cover_image_url, is_active, created_by
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?)
-            `, [
-                title.trim(),
-                isbn || null,
-                publisher || null,
-                publication_date || null,
-                genre || null,
-                language,
-                pages || null,
-                description || null,
-                total_copies,
-                total_copies, // available_copies starts equal to total_copies
-                is_ebook,
-                cover_image_url || null,
-                req.user.user_id
-            ]);
-            
-            const bookId = bookResult.insertId;
+            // If client sent a data URL for cover image, persist it to /public/uploads and store the file URL
+            let coverUrlToUse = cover_image_url || null;
+            try {
+                if (cover_image_url && typeof cover_image_url === 'string' && cover_image_url.startsWith('data:image/')) {
+                    const uploadsDir = path.join(__dirname, '..', 'public', 'uploads');
+                    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+                    const ext = cover_image_url.substring(11, cover_image_url.indexOf(';')); // e.g. 'png', 'jpeg'
+                    const base64Data = cover_image_url.split(',')[1];
+                    const fileName = `cover_${Date.now()}.${ext === 'jpeg' ? 'jpg' : ext}`;
+                    const filePath = path.join(uploadsDir, fileName);
+                    fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+                    coverUrlToUse = `/uploads/${fileName}`;
+                }
+            } catch (e) {
+                // If anything fails, fall back to original URL (or null)
+            }
+
+            // Insert the book (robust to older schemas without created_by)
+            let bookId;
+            try {
+                const [bookResult] = await connection.execute(`
+                    INSERT INTO books (
+                        title, isbn, publisher, publication_date, genre, language, 
+                        pages, description, total_copies, available_copies, is_ebook, 
+                        cover_image_url, is_active, created_by
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?)
+                `, [
+                    title.trim(),
+                    isbn || null,
+                    publisher || null,
+                    publication_date || null,
+                    genre || null,
+                    language,
+                    pages || null,
+                    description || null,
+                    total_copies,
+                    total_copies, // available_copies starts equal to total_copies
+                    is_ebook ? 1 : 0,
+                    coverUrlToUse,
+                    req.user.user_id
+                ]);
+                bookId = bookResult.insertId;
+            } catch (insertErr) {
+                // Fallback for databases without created_by column
+                if ((insertErr && insertErr.code === 'ER_BAD_FIELD_ERROR') || (insertErr && /created_by/i.test(insertErr.message))) {
+                    console.warn('books.created_by column missing, inserting without it');
+                    const [bookResultFallback] = await connection.execute(`
+                        INSERT INTO books (
+                            title, isbn, publisher, publication_date, genre, language, 
+                            pages, description, total_copies, available_copies, is_ebook, 
+                            cover_image_url, is_active
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)
+                    `, [
+                        title.trim(),
+                        isbn || null,
+                        publisher || null,
+                        publication_date || null,
+                        genre || null,
+                        language,
+                        pages || null,
+                        description || null,
+                        total_copies,
+                        total_copies,
+                        is_ebook ? 1 : 0,
+                        coverUrlToUse
+                    ]);
+                    bookId = bookResultFallback.insertId;
+                } else {
+                    throw insertErr;
+                }
+            }
             
             // Add authors
             for (let i = 0; i < authors.length; i++) {
@@ -118,11 +198,15 @@ router.post('/books', authenticate, requireStaff, async (req, res) => {
                 );
             }
             
-            // Log the action
-            await connection.execute(
-                'INSERT INTO staff_logs (staff_id, action_type, target_type, target_id, action_description) VALUES (?, ?, ?, ?, ?)',
-                [req.user.user_id, 'add_book', 'book', bookId, `Book added: ${title.trim()}`]
-            );
+            // Log the action (tolerate schema differences)
+            try {
+                await connection.execute(
+                    'INSERT INTO staff_logs (staff_id, action_type, target_type, target_id, action_description) VALUES (?, ?, ?, ?, ?)',
+                    [req.user.user_id, 'add_book', 'book', bookId, `Book added: ${title.trim()}`]
+                );
+            } catch (logErr) {
+                console.warn('staff_logs insert failed (schema may differ):', logErr.message);
+            }
             
             await connection.commit();
             
@@ -149,6 +233,7 @@ router.post('/books', authenticate, requireStaff, async (req, res) => {
             
         } catch (error) {
             await connection.rollback();
+            console.error('Add book transaction failed:', error.message);
             throw error;
         }
         
@@ -343,12 +428,76 @@ router.delete('/books/:id', authenticate, requireStaff, async (req, res) => {
     }
 });
 
+// PUT /api/admin/books/:id/retire - Alternate retire endpoint used by UI
+router.put('/books/:id/retire', authenticate, requireStaff, async (req, res) => {
+    const connection = await getMySQLConnection();
+    try {
+        const bookId = parseInt(req.params.id);
+        if (!bookId || isNaN(bookId)) {
+            return res.status(400).json({
+                error: { message: 'Valid book ID is required', code: 'INVALID_BOOK_ID' }
+            });
+        }
+        const [existingBook] = await connection.execute(
+            'SELECT book_id, title FROM books WHERE book_id = ? AND is_active = TRUE',
+            [bookId]
+        );
+        if (existingBook.length === 0) {
+            return res.status(404).json({
+                error: { message: 'Book not found or already retired', code: 'BOOK_NOT_FOUND' }
+            });
+        }
+        const [activeCheckouts] = await connection.execute(
+            'SELECT COUNT(*) as count FROM checkouts WHERE book_id = ? AND is_returned = FALSE',
+            [bookId]
+        );
+        if (activeCheckouts[0].count > 0) {
+            return res.status(400).json({
+                error: { message: 'Cannot retire book with active checkouts', code: 'ACTIVE_CHECKOUTS' }
+            });
+        }
+        await connection.execute(
+            'UPDATE books SET is_active = FALSE, available_copies = 0 WHERE book_id = ?',
+            [bookId]
+        );
+        await connection.execute(
+            'INSERT INTO staff_logs (staff_id, action_type, target_type, target_id, action_description) VALUES (?, ?, ?, ?, ?)',
+            [req.user.user_id, 'retire_book', 'book', bookId, `Book retired: ${existingBook[0].title}`]
+        );
+        res.json({ message: 'Book retired successfully' });
+    } catch (error) {
+        console.error('Retire book (PUT) error:', error);
+        res.status(500).json({ error: { message: 'Failed to retire book', code: 'RETIRE_BOOK_ERROR' } });
+    } finally {
+        connection.release();
+    }
+});
+
 // GET /api/admin/reports - Get administrative reports
 router.get('/reports', authenticate, requireStaff, async (req, res) => {
     const connection = await getMySQLConnection();
     
     try {
         const { report_type, start_date, end_date } = req.query;
+        // Sanitize limit and date range
+        const limit = Math.min(Math.max(parseInt(req.query.limit || '10', 10), 1), 50);
+        const now = new Date();
+        const defaultStart = `${now.getFullYear()}-01-01`;
+        const defaultEnd = `${now.getFullYear()}-12-31`;
+
+        // Normalize date strings from UI (e.g., MM/DD/YYYY) to YYYY-MM-DD for MySQL
+        const normalizeDate = (value) => {
+            if (!value) return null;
+            const d = new Date(value);
+            if (isNaN(d.getTime())) return null;
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        };
+
+        const start = normalizeDate(start_date) || defaultStart;
+        const end = normalizeDate(end_date) || defaultEnd;
         
         let reportData = {};
         
@@ -359,7 +508,7 @@ router.get('/reports', authenticate, requireStaff, async (req, res) => {
                     SELECT 
                         b.book_id,
                         b.title,
-                        COUNT(c.checkout_id) as checkout_count,
+                        COUNT(DISTINCT c.checkout_id) as checkout_count,
                         b.total_borrowed,
                         b.average_rating,
                         GROUP_CONCAT(
@@ -375,8 +524,8 @@ router.get('/reports', authenticate, requireStaff, async (req, res) => {
                     WHERE b.is_active = TRUE
                     GROUP BY b.book_id, b.title, b.total_borrowed, b.average_rating
                     ORDER BY checkout_count DESC, b.average_rating DESC
-                    LIMIT 10
-                `, [start_date || '2024-01-01', end_date || '2024-12-31']);
+                    LIMIT ${limit}
+                `, [start, end]);
                 
                 reportData = {
                     most_borrowed_books: mostBorrowed.map(book => ({
@@ -391,7 +540,7 @@ router.get('/reports', authenticate, requireStaff, async (req, res) => {
                 break;
                 
             case 'top_readers':
-                // Top active readers by number of checkouts
+                // Top active readers by number of checkouts (only users with actual checkouts)
                 const [topReaders] = await connection.execute(`
                     SELECT 
                         u.user_id,
@@ -401,14 +550,15 @@ router.get('/reports', authenticate, requireStaff, async (req, res) => {
                         COUNT(c.checkout_id) as total_checkouts,
                         COUNT(CASE WHEN c.is_returned = FALSE THEN 1 END) as active_checkouts
                     FROM users u
-                    LEFT JOIN checkouts c ON u.user_id = c.user_id
+                    INNER JOIN checkouts c ON u.user_id = c.user_id
                     WHERE u.user_type = 'reader' 
                       AND u.is_active = TRUE
-                      AND (c.checkout_date IS NULL OR c.checkout_date BETWEEN ? AND ?)
+                      AND c.checkout_date BETWEEN ? AND ?
                     GROUP BY u.user_id, u.username, u.first_name, u.last_name
+                    HAVING total_checkouts > 0
                     ORDER BY total_checkouts DESC
-                    LIMIT 10
-                `, [start_date || '2024-01-01', end_date || '2024-12-31']);
+                    LIMIT ${limit}
+                `, [start, end]);
                 
                 reportData = {
                     top_readers: topReaders.map(reader => ({
@@ -440,6 +590,7 @@ router.get('/reports', authenticate, requireStaff, async (req, res) => {
                     LEFT JOIN book_authors ba ON b.book_id = ba.book_id
                     LEFT JOIN authors a ON ba.author_id = a.author_id
                     WHERE b.is_active = TRUE 
+                      AND b.total_copies > 0
                       AND (b.available_copies / b.total_copies) < 0.2
                     GROUP BY b.book_id, b.title, b.genre, b.total_copies, b.available_copies
                     ORDER BY availability_percentage ASC
@@ -474,7 +625,10 @@ router.get('/reports', authenticate, requireStaff, async (req, res) => {
         });
         
     } catch (error) {
-        console.error('Generate report error:', error);
+        console.error('Generate report error:', {
+            message: error.message,
+            stack: error.stack
+        });
         res.status(500).json({
             error: {
                 message: 'Failed to generate report',
