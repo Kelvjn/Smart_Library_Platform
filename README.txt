@@ -15,24 +15,8 @@ CONTRIBUTION SCORES
 VIDEO DEMONSTRATION
 -------------------
 Demo Video URL: [PLACEHOLDER - Upload your video to RMIT OneDrive and replace this with the actual link]
-
-Video Requirements:
-• Total Duration: 25 minutes (5 minutes presentation + 20 minutes demo)
-• Storage: Must be uploaded to RMIT OneDrive
-• Permissions: Set to allow read access to all RMIT accounts
-• Content: Must demonstrate all implemented features
-• Format: Any standard video format (MP4, AVI, MOV, etc.)
-
-Demo Features to Show:
-• User authentication and role-based access
-• Book management (add, edit, delete, search)
-• User management and registration
-• Checkout and return functionality
-• Review system and ratings
-• Analytics dashboard and reporting
-• File upload for book covers
-• Database operations and performance
-• MongoDB analytics and aggregations
+Note: Video must be 25 minutes total (5 minutes presentation + 20 minutes demo)
+Permission: Set to allow read access to all RMIT accounts
 
 PREREQUISITES
 -------------
@@ -78,8 +62,6 @@ INSTALLATION STEPS
 
 4. *START THE APPLICATION* (important)
    node server.js
-   
-   The application will start on: http://localhost:3000
    
    Alternative startup methods:
    - Windows: start_server.bat
@@ -146,25 +128,25 @@ TROUBLESHOOTING
 PROJECT STRUCTURE
 -----------------
 Smart_Library_Platform/
-├── config/                         # Database and configuration files
-├── database/                       # SQL scripts and database utilities
-│   ├── mysql_schema.sql            # Database schema
-│   ├── mysql_functions.sql         # MySQL functions
-│   ├── mysql_procedures.sql        # Stored procedures
-│   ├── mysql_triggers.sql          # Database triggers
-│   ├── mongodb_setup.js            # MongoDB setup
-│   └── mongodb_aggregations.js     # Aggregation pipelines
-├── middleware/                     # Authentication and validation middleware
-├── public/                         # Frontend HTML, CSS, and JavaScript
-│   └── uploads/                    # Book cover image uploads
-├── routes/                         # API route handlers
-├── server.js                       # Main application server
-├── package.json                    # Dependencies and scripts
-├── populate_sample_data.sql        # Sample data for testing
-├── performance_testing.sql         # Performance testing evidence
-├── test_all_functionality.sql      # Comprehensive testing
-├── setup_mongodb_analytics.js      # MongoDB analytics setup
-└── README.txt                      # This file
+├── config/                      # Database and configuration files
+├── database/                    # SQL scripts and database utilities
+│   ├── mysql_schema.sql         # Database schema
+│   ├── mysql_functions.sql      # MySQL functions
+│   ├── mysql_procedures.sql     # Stored procedures
+│   ├── mysql_triggers.sql       # Database triggers
+│   ├── mongodb_setup.js         # MongoDB setup
+│   └── mongodb_aggregations.js  # Aggregation pipelines
+├── middleware/                  # Authentication and validation middleware
+├── public/                      # Frontend HTML, CSS, and JavaScript
+│   └── uploads/                 # Book cover image uploads
+├── routes/                      # API route handlers
+├── server.js                    # Main application server
+├── package.json                 # Dependencies and scripts
+├── populate_sample_data.sql     # Sample data for testing
+├── performance_testing.sql      # Performance testing evidence
+├── test_all_functionality.sql   # Comprehensive testing
+├── setup_mongodb_analytics.js   # MongoDB analytics setup
+└── README.txt                   # This file
 
 API ENDPOINTS
 -------------
@@ -174,20 +156,6 @@ API ENDPOINTS
 • Reviews: /api/reviews/book/:bookId, /api/reviews/user/:userId
 • Checkouts: /api/checkouts, /api/checkouts/:id
 • Authentication: /api/auth/login, /api/auth/register
-
-TECHNICAL FEATURES
-------------------
-• Database Design: Complete MySQL schema with proper relationships
-• Optimization: Performance indexes and query optimization
-• Functions: 3 custom MySQL functions for business logic
-• Stored Procedures: 6 procedures with transaction management
-• Triggers: 6 triggers for data integrity and audit trails
-• Transaction Management: ACID compliance with rollback support
-• Aggregation Pipeline: 5 MongoDB aggregation pipelines for analytics
-• Web Application: Full-stack Node.js application with REST API
-• File Upload: Book cover image upload functionality
-• Authentication: JWT-based authentication with role-based access
-• Analytics: Real-time reading analytics and user engagement tracking
 
 VERSION
 -------
