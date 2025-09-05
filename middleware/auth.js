@@ -220,7 +220,7 @@ const verifyOwnership = (userIdParam = 'userId') => {
 // Rate limiting for authentication endpoints
 const authRateLimit = {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 attempts per window
+    max: process.env.NODE_ENV === 'development' ? 50 : 5, // More permissive in development
     message: {
         error: {
             message: 'Too many authentication attempts. Please try again later.',

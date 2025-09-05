@@ -146,25 +146,25 @@ TROUBLESHOOTING
 PROJECT STRUCTURE
 -----------------
 Smart_Library_Platform/
-├── config/                      # Database and configuration files
-├── database/                    # SQL scripts and database utilities
-│   ├── mysql_schema.sql         # Database schema
-│   ├── mysql_functions.sql      # MySQL functions
-│   ├── mysql_procedures.sql     # Stored procedures
-│   ├── mysql_triggers.sql       # Database triggers
-│   ├── mongodb_setup.js         # MongoDB setup
-│   └── mongodb_aggregations.js  # Aggregation pipelines
-├── middleware/                  # Authentication and validation middleware
-├── public/                      # Frontend HTML, CSS, and JavaScript
-│   └── uploads/                 # Book cover image uploads
-├── routes/                      # API route handlers
-├── server.js                    # Main application server
-├── package.json                 # Dependencies and scripts
-├── populate_sample_data.sql     # Sample data for testing
-├── performance_testing.sql      # Performance testing evidence
-├── test_all_functionality.sql   # Comprehensive testing
-├── setup_mongodb_analytics.js   # MongoDB analytics setup
-└── README.txt                   # This file
+├── config/                         # Database and configuration files
+├── database/                       # SQL scripts and database utilities
+│   ├── mysql_schema.sql            # Database schema
+│   ├── mysql_functions.sql         # MySQL functions
+│   ├── mysql_procedures.sql        # Stored procedures
+│   ├── mysql_triggers.sql          # Database triggers
+│   ├── mongodb_setup.js            # MongoDB setup
+│   └── mongodb_aggregations.js     # Aggregation pipelines
+├── middleware/                     # Authentication and validation middleware
+├── public/                         # Frontend HTML, CSS, and JavaScript
+│   └── uploads/                    # Book cover image uploads
+├── routes/                         # API route handlers
+├── server.js                       # Main application server
+├── package.json                    # Dependencies and scripts
+├── populate_sample_data.sql        # Sample data for testing
+├── performance_testing.sql         # Performance testing evidence
+├── test_all_functionality.sql      # Comprehensive testing
+├── setup_mongodb_analytics.js      # MongoDB analytics setup
+└── README.txt                      # This file
 
 API ENDPOINTS
 -------------
