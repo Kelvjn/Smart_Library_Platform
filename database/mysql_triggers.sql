@@ -164,7 +164,7 @@ BEGIN
     IF ABS(NEW.total_copies - OLD.total_copies) >= GREATEST(1, OLD.total_copies * 0.1) THEN
         INSERT INTO staff_logs (staff_id, action_type, target_type, target_id, action_description, old_values, new_values)
         VALUES (
-            1, -- System user ID for automated logs
+            1, -- System user ID for system logs
             'update_inventory', 
             'book', 
             NEW.book_id,
@@ -178,7 +178,7 @@ BEGIN
     IF OLD.is_active = TRUE AND NEW.is_active = FALSE THEN
         INSERT INTO staff_logs (staff_id, action_type, target_type, target_id, action_description)
         VALUES (
-            1, -- System user ID for automated logs
+            1, -- System user ID for system logs
             'retire_book', 
             'book', 
             NEW.book_id,
@@ -196,7 +196,7 @@ BEGIN
     IF OLD.user_type != NEW.user_type THEN
         INSERT INTO staff_logs (staff_id, action_type, target_type, target_id, action_description, old_values, new_values)
         VALUES (
-            1, -- System user ID for automated logs
+            1, -- System user ID for system logs
             'manage_user', 
             'user', 
             NEW.user_id,
@@ -210,7 +210,7 @@ BEGIN
     IF OLD.is_active = TRUE AND NEW.is_active = FALSE THEN
         INSERT INTO staff_logs (staff_id, action_type, target_type, target_id, action_description)
         VALUES (
-            1, -- System user ID for automated logs
+            1, -- System user ID for system logs
             'manage_user', 
             'user', 
             NEW.user_id,

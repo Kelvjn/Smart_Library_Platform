@@ -5,7 +5,7 @@
  * Features include user authentication, book management, borrowing/returning,
  * reviews, and analytics with both MySQL and MongoDB integration.
  * 
- * @author Smart Library Platform Team
+ * @author Lu Duc Thinh
  * @version 1.0.0
  */
 const express = require('express');

@@ -8,6 +8,16 @@ CONTRIBUTION
 This project was completed individually by Lu Duc Thinh.
 All code, database design, and documentation was developed independently.
 
+CONTRIBUTION SCORES
+-------------------
+• Lu Duc Thinh: 5.0 (Individual project - 100% contribution)
+
+VIDEO DEMONSTRATION
+-------------------
+Demo Video URL: [PLACEHOLDER - Upload your video to RMIT OneDrive and replace this with the actual link]
+Note: Video must be 25 minutes total (5 minutes presentation + 20 minutes demo)
+Permission: Set to allow read access to all RMIT accounts
+
 PREREQUISITES
 -------------
 • Node.js (v16 or higher)
@@ -44,6 +54,10 @@ INSTALLATION STEPS
 
 4. START THE APPLICATION
    node server.js
+   
+   Alternative startup methods:
+   - Windows: start_server.bat
+   - PowerShell: start_server.ps1
 
  USERS
 -------------
@@ -66,14 +80,34 @@ TROUBLESHOOTING
 PROJECT STRUCTURE
 -----------------
 Smart_Library_Platform/
-├── config/                 # Database and configuration files
-├── database/              # SQL scripts and database utilities
-├── middleware/            # Authentication and validation middleware
-├── public/               # Frontend HTML, CSS, and JavaScript
-├── routes/               # API route handlers
-├── server.js             # Main application server
-├── package.json          # Dependencies and scripts
-└── README.txt           # This file
+├── config/                      # Database and configuration files
+├── database/                    # SQL scripts and database utilities
+│   ├── mysql_schema.sql         # Database schema
+│   ├── mysql_functions.sql      # MySQL functions
+│   ├── mysql_procedures.sql     # Stored procedures
+│   ├── mysql_triggers.sql       # Database triggers
+│   ├── mongodb_setup.js         # MongoDB setup
+│   └── mongodb_aggregations.js  # Aggregation pipelines
+├── middleware/                  # Authentication and validation middleware
+├── public/                      # Frontend HTML, CSS, and JavaScript
+│   └── uploads/                 # Book cover image uploads
+├── routes/                      # API route handlers
+├── server.js                    # Main application server
+├── package.json                 # Dependencies and scripts
+├── populate_sample_data.sql     # Sample data for testing
+├── performance_testing.sql      # Performance testing evidence
+├── test_all_functionality.sql   # Comprehensive testing
+├── setup_mongodb_analytics.js   # MongoDB analytics setup
+└── README.txt                   # This file
+
+API ENDPOINTS
+-------------
+• Books: /api/books, /api/books/:id, /api/books/search
+• Users: /api/users, /api/users/:id, /api/users/:id/checkouts  
+• Analytics: /api/analytics/overview, /api/analytics/books
+• Reviews: /api/reviews/book/:bookId, /api/reviews/user/:userId
+• Checkouts: /api/checkouts, /api/checkouts/:id
+• Authentication: /api/auth/login, /api/auth/register
 
 VERSION
 -------
