@@ -48,17 +48,21 @@ INSTALLATION STEPS
 
 2. DATABASE SETUP
    
-   a) MySQL Database:
-      - Create a new MySQL database named 'smart_library'
-      - Import the schema: mysql -u root -p smart_library < database/mysql_schema.sql
+   a) MySQL Database (IMPORTANT - Sample data required for demonstration):
+      - Create database: mysql -u root -p -e "CREATE DATABASE smart_library;"
+      - Import schema: mysql -u root -p smart_library < database/mysql_schema.sql
       - Import functions: mysql -u root -p smart_library < database/mysql_functions.sql
       - Import procedures: mysql -u root -p smart_library < database/mysql_procedures.sql
       - Import triggers: mysql -u root -p smart_library < database/mysql_triggers.sql
       - Import sample data: mysql -u root -p smart_library < populate_sample_data.sql
+      
+      Alternative (if you have a full dump with routines and triggers):
+      - mysql -u root -p < dump_full.sql --routines --triggers
    
-   b) MongoDB:
+   b) MongoDB (IMPORTANT - Analytics data required for demonstration):
       - Ensure MongoDB is running on localhost:27017
       - Run setup script: node setup_mongodb_analytics.js
+      - This populates reading sessions, user analytics, and performance data
       - The application will automatically create the 'smart_library_nosql' database
 
 3. ENVIRONMENT CONFIGURATION
@@ -75,16 +79,46 @@ INSTALLATION STEPS
 4. *START THE APPLICATION* (important)
    node server.js
    
+   The application will start on: http://localhost:3000
+   
    Alternative startup methods:
    - Windows: start_server.bat
    - PowerShell: start_server.ps1
 
- USERS
--------------
+TEST ACCOUNTS (IMPORTANT - Required for demonstration)
+-----------------------------------------------------
 • Staff: admin/admin123
 • Staff: thinh/12345678
 • Reader: duc/12345678910
 • Reader: Mary/mytra2012@
+
+WHY SAMPLE DATA IS REQUIRED
+---------------------------
+Sample data is essential for assessment because:
+
+1. **Demonstration Requirements**: Assessors need to see the complete flow:
+   - Borrow/return functionality with existing books
+   - Review system with sample ratings
+   - Analytics dashboard with real data
+   - Trigger demonstrations with actual transactions
+
+2. **Performance Testing**: Sample data enables:
+   - EXPLAIN query analysis on realistic datasets
+   - Performance optimization demonstrations
+   - Index effectiveness testing
+   - Query execution time measurements
+
+3. **Feature Validation**: Without sample data, assessors cannot verify:
+   - Database functions and procedures
+   - Trigger behavior and audit trails
+   - MongoDB aggregation pipelines
+   - Transaction management and rollbacks
+
+4. **Time Efficiency**: Assessors don't have time to manually create:
+   - Multiple books with different genres
+   - User accounts with various roles
+   - Checkout history and reviews
+   - Analytics data for reporting
 
 TROUBLESHOOTING
 ---------------
@@ -101,6 +135,13 @@ TROUBLESHOOTING
    - Run performance tests: mysql -u root -p smart_library < performance_testing.sql
    - Run functionality tests: mysql -u root -p smart_library < test_all_functionality.sql
    - Check MongoDB analytics: node setup_mongodb_analytics.js
+
+4. Quick verification (after setup):
+   - Open browser: http://localhost:3000
+   - Login with test accounts above
+   - Verify books are loaded (should see 16+ books with covers)
+   - Check analytics dashboard (staff/admin only)
+   - Test borrow/return functionality
 
 PROJECT STRUCTURE
 -----------------
