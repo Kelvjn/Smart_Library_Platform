@@ -15,8 +15,24 @@ CONTRIBUTION SCORES
 VIDEO DEMONSTRATION
 -------------------
 Demo Video URL: [PLACEHOLDER - Upload your video to RMIT OneDrive and replace this with the actual link]
-Note: Video must be 25 minutes total (5 minutes presentation + 20 minutes demo)
-Permission: Set to allow read access to all RMIT accounts
+
+Video Requirements:
+• Total Duration: 25 minutes (5 minutes presentation + 20 minutes demo)
+• Storage: Must be uploaded to RMIT OneDrive
+• Permissions: Set to allow read access to all RMIT accounts
+• Content: Must demonstrate all implemented features
+• Format: Any standard video format (MP4, AVI, MOV, etc.)
+
+Demo Features to Show:
+• User authentication and role-based access
+• Book management (add, edit, delete, search)
+• User management and registration
+• Checkout and return functionality
+• Review system and ratings
+• Analytics dashboard and reporting
+• File upload for book covers
+• Database operations and performance
+• MongoDB analytics and aggregations
 
 PREREQUISITES
 -------------
@@ -35,10 +51,14 @@ INSTALLATION STEPS
    a) MySQL Database:
       - Create a new MySQL database named 'smart_library'
       - Import the schema: mysql -u root -p smart_library < database/mysql_schema.sql
+      - Import functions: mysql -u root -p smart_library < database/mysql_functions.sql
+      - Import procedures: mysql -u root -p smart_library < database/mysql_procedures.sql
+      - Import triggers: mysql -u root -p smart_library < database/mysql_triggers.sql
       - Import sample data: mysql -u root -p smart_library < populate_sample_data.sql
    
    b) MongoDB:
       - Ensure MongoDB is running on localhost:27017
+      - Run setup script: node setup_mongodb_analytics.js
       - The application will automatically create the 'smart_library_nosql' database
 
 3. ENVIRONMENT CONFIGURATION
@@ -52,7 +72,7 @@ INSTALLATION STEPS
    MONGODB_URI=mongodb://localhost:27017/smart_library_nosql
    JWT_SECRET=your_super_secret_jwt_key_here
 
-4. START THE APPLICATION
+4. *START THE APPLICATION* (important)
    node server.js
    
    Alternative startup methods:
@@ -76,6 +96,11 @@ TROUBLESHOOTING
    - Verify MySQL and MongoDB are running
    - Check database credentials in .env file
    - Ensure databases exist and are accessible
+
+3. Testing the application:
+   - Run performance tests: mysql -u root -p smart_library < performance_testing.sql
+   - Run functionality tests: mysql -u root -p smart_library < test_all_functionality.sql
+   - Check MongoDB analytics: node setup_mongodb_analytics.js
 
 PROJECT STRUCTURE
 -----------------
@@ -108,6 +133,20 @@ API ENDPOINTS
 • Reviews: /api/reviews/book/:bookId, /api/reviews/user/:userId
 • Checkouts: /api/checkouts, /api/checkouts/:id
 • Authentication: /api/auth/login, /api/auth/register
+
+TECHNICAL FEATURES
+------------------
+• Database Design: Complete MySQL schema with proper relationships
+• Optimization: Performance indexes and query optimization
+• Functions: 3 custom MySQL functions for business logic
+• Stored Procedures: 6 procedures with transaction management
+• Triggers: 6 triggers for data integrity and audit trails
+• Transaction Management: ACID compliance with rollback support
+• Aggregation Pipeline: 5 MongoDB aggregation pipelines for analytics
+• Web Application: Full-stack Node.js application with REST API
+• File Upload: Book cover image upload functionality
+• Authentication: JWT-based authentication with role-based access
+• Analytics: Real-time reading analytics and user engagement tracking
 
 VERSION
 -------
