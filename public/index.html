@@ -1421,7 +1421,7 @@
                 UI.loadFeaturedBooks();
                 
                 // Process images after content is loaded
-                setTimeout(processBookCoverImages, 100);
+                setTimeout(processBookCoverImages, 200);
             },
 
             loadFeaturedBooks: async () => {
@@ -1466,7 +1466,7 @@
                     `).join('');
                     
                     // Process images after featured books are loaded
-                    setTimeout(processBookCoverImages, 100);
+                    setTimeout(processBookCoverImages, 200);
                 } catch (error) {
                     document.getElementById('featuredBooksContainer').innerHTML = 
                         '<div class="col-12 text-center"><p class="text-danger">Failed to load featured books.</p></div>';
@@ -1652,7 +1652,7 @@
                 UI.loadGenresForAdvancedSearch();
                 
                 // Process images after content is loaded
-                setTimeout(processBookCoverImages, 100);
+                setTimeout(processBookCoverImages, 200);
             },
 
             loadBooks: async (page = 1, search = '', genre = '', sortBy = 'title') => {
@@ -1722,7 +1722,7 @@
                     }
                     
                     // Process images after books are loaded
-                    setTimeout(processBookCoverImages, 100);
+                    setTimeout(processBookCoverImages, 200);
                 } catch (error) {
                     document.getElementById('booksContainer').innerHTML = 
                         '<div class="col-12 text-center"><p class="text-danger">Failed to load books.</p></div>';
@@ -2528,7 +2528,7 @@
                     <div class="container my-4">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h2>My Dashboard</h2>
-                            <button class="btn btn-outline-primary refresh-dashboard-btn" onclick="UI.forceGlobalRefresh()">
+                            <button class="btn btn-outline-primary refresh-dashboard-btn" id="refreshDashboardBtn">
                                 <i class="fas fa-sync-alt me-2"></i>Refresh
                             </button>
                         </div>
@@ -2658,8 +2658,7 @@
                                                          <br>
                                                          <button class="btn btn-warning btn-sm return-btn" 
                                                                  data-book-id="${checkout.book_id}" 
-                                                                 data-book-title="${checkout.title}"
-                                                                 onclick="UI.showReturnModal(${checkout.book_id}, '${checkout.title.replace(/'/g, "\\'")}')">
+                                                                 data-book-title="${checkout.title}">
                                                              <i class="fas fa-undo me-1"></i>Return
                                                          </button>
                                                      </div>
@@ -2802,24 +2801,19 @@
                     const bookTitle = btn.dataset.bookTitle;
                     UI.showBorrowModal(bookId, bookTitle);
                 } else if (e.target.classList.contains('return-btn') || e.target.closest('.return-btn')) {
-                    console.log('🔍 Return button clicked!');
                     const btn = e.target.closest('.return-btn') || e.target;
                     const bookId = btn.dataset.bookId;
                     const bookTitle = btn.dataset.bookTitle;
-                    console.log('🔍 Button data:', { bookId, bookTitle });
-                    console.log('🔍 Button element:', btn);
                     
                     // Ensure we have fresh checkout data before opening the modal
                     try { 
                         if (!App.userCheckouts || !Array.isArray(App.userCheckouts)) { 
-                            console.log('🔄 Loading user data...');
                             await UI.loadUserData(); 
                         } 
                     } catch (error) { 
                         console.error('❌ Error loading user data:', error);
                     }
                     
-                    console.log('🔍 Calling showReturnModal...');
                     UI.showReturnModal(bookId, bookTitle);
                 } else if (e.target.classList.contains('review-btn') || e.target.closest('.review-btn')) {
                     const btn = e.target.closest('.review-btn') || e.target;
@@ -2842,7 +2836,7 @@
                 } else if (e.target.id === 'navAdmin' || e.target.closest('#navAdmin')) {
                     e.preventDefault();
                     App.currentView = 'admin';
-                    UI.showAdminPanel();
+                    await UI.showAdminPanel();
                 } else if (e.target.id === 'navCheckouts' || e.target.closest('#navCheckouts')) {
                     e.preventDefault();
                     App.currentView = 'checkouts';
@@ -2919,6 +2913,30 @@
 
             // Show home page initially
             UI.showHomePage();
+            
+            // Initialize new functionality
+            UI.initRatingStars();
+            UI.initForms();
+            UI.enhanceDateInputs();
+            
+            // Load user data when authenticated
+            if (App.user) {
+                UI.loadUserData();
+            }
+            
+            // Add event listeners for buttons that were converted from inline handlers
+            document.addEventListener('click', (e) => {
+                if (e.target.id === 'refreshDashboardBtn' || e.target.closest('#refreshDashboardBtn')) {
+                    e.preventDefault();
+                    UI.forceGlobalRefresh();
+                } else if (e.target.id === 'refreshCheckoutsBtn' || e.target.closest('#refreshCheckoutsBtn')) {
+                    e.preventDefault();
+                    UI.forceGlobalRefresh();
+                } else if (e.target.id === 'testReturnBtn' || e.target.closest('#testReturnBtn')) {
+                    e.preventDefault();
+                    UI.showReturnModal(1, 'Test Book');
+                }
+            });
         });
 
         // Additional UI functions
@@ -3201,25 +3219,15 @@
 
         // Get user's checkout for a specific book
         UI.getUserCheckout = (bookId) => {
-            console.log('🔍 getUserCheckout called with bookId:', bookId, 'type:', typeof bookId);
-            console.log('🔍 App.userCheckouts:', App.userCheckouts);
             
             // Convert bookId to number for comparison
             const numericBookId = parseInt(bookId);
             
             const checkout = App.userCheckouts.find(checkout => {
                 const checkoutBookId = parseInt(checkout.book_id);
-                const isMatch = checkoutBookId === numericBookId && !checkout.is_returned;
-                console.log('🔍 Checking checkout:', {
-                    checkoutBookId,
-                    numericBookId,
-                    isReturned: checkout.is_returned,
-                    isMatch
-                });
-                return isMatch;
+                return checkoutBookId === numericBookId && !checkout.is_returned;
             });
             
-            console.log('🔍 Found checkout:', checkout);
             return checkout;
         };
 
@@ -3274,30 +3282,22 @@
 
         // Return Book Functions
         UI.showReturnModal = async (bookId, bookTitle) => {
-            console.log('🔍 showReturnModal called with:', { bookId, bookTitle });
-            console.log('🔍 App.userCheckouts:', App.userCheckouts);
             
             // Ensure user checkouts are loaded
             if (!App.userCheckouts || App.userCheckouts.length === 0) {
-                console.log('🔄 Loading user data...');
                 await UI.loadUserData();
             }
             
             const checkout = UI.getUserCheckout(bookId);
-            console.log('🔍 Found checkout:', checkout);
             
             if (!checkout) {
-                console.error('❌ Checkout not found for book:', bookId);
-                console.error('❌ Available checkouts:', App.userCheckouts);
                 
                 // Try to find the checkout by book title as fallback
                 const fallbackCheckout = App.userCheckouts.find(c => 
                     c.title && c.title.toLowerCase().includes(bookTitle.toLowerCase()) && !c.is_returned
                 );
                 
-                if (fallbackCheckout) {
-                    console.log('✅ Found fallback checkout by title:', fallbackCheckout);
-                    // Use the fallback checkout
+                if (fallbackCheckout) {ách                    // Use the fallback checkout
                     document.getElementById('returnBookId').value = fallbackCheckout.book_id;
                     document.getElementById('returnBookId').setAttribute('data-checkout-id', fallbackCheckout.checkout_id || '');
                     document.getElementById('returnBookTitle').value = fallbackCheckout.title;
@@ -3474,7 +3474,6 @@
         // Global refresh function for maximum synchronization
         UI.forceGlobalRefresh = async () => {
             try {
-                console.log('🔄 Force refreshing all UI components...');
                 
                 // Reload all user data
                 await UI.loadUserData();
@@ -3497,14 +3496,13 @@
                         UI.showMyReviews();
                         break;
                     case 'admin':
-                        UI.showAdminPanel();
+                        await UI.showAdminPanel();
                         break;
                     default:
                         // If no specific view, refresh dashboard
                         UI.showDashboard();
                 }
                 
-                console.log('✅ Global refresh completed');
             } catch (error) {
                 console.error('❌ Error during global refresh:', error);
             }
@@ -3619,8 +3617,6 @@
                             authors
                         };
                         
-                        // Debug: Log the payload to see what's being sent
-                        console.log('Adding book with payload:', payload);
                         
                         // Test cover image URL if provided
                         if (payload.cover_image_url) {
@@ -3714,6 +3710,9 @@
                         const data = await Utils.makeRequest(`/admin/reports?${params.toString()}`);
                         UI.renderReportResults(type, data);
                     } catch (err) { Utils.showAlert(err.message || 'Failed to load report', 'danger'); }
+                } else if (e.target && e.target.id === 'updateCoverForm') {
+                    e.preventDefault();
+                    await UI.handleCoverUpdate();
                 }
             });
         };
@@ -3758,32 +3757,232 @@
             }
         };
 
-        // Update the existing event listeners to include new functionality
-        document.addEventListener('DOMContentLoaded', () => {
-            // Existing event listeners...
-            
-            // Initialize new functionality
-            UI.initRatingStars();
-            UI.initForms();
-            UI.enhanceDateInputs();
-            
-            // Load user data when authenticated
-            if (App.user) {
-                UI.loadUserData();
+
+        // Authentication Helper Functions
+        UI.checkAuthStatus = async () => {
+            const token = localStorage.getItem('library_token');
+            if (!token) {
+                return { valid: false, reason: 'No token' };
             }
-        });
+            
+            try {
+                const response = await fetch('/api/admin/debug-auth', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    return { valid: true, user: data.user };
+                } else if (response.status === 401) {
+                    // Token is invalid or expired
+                    localStorage.removeItem('library_token');
+                    return { valid: false, reason: 'Token expired or invalid' };
+                } else {
+                    // Other errors
+                    return { valid: false, reason: `HTTP ${response.status}: ${response.statusText}` };
+                }
+            } catch (error) {
+                return { valid: false, reason: error.message };
+            }
+        };
+
+        // Removed refreshAuthIfNeeded to prevent auto-logout conflicts
+
+        // Cover Management Functions
+        UI.loadBooksForCoverUpdate = async () => {
+            try {
+                const data = await Utils.makeRequest('/books?limit=1000');
+                const select = document.getElementById('cover_book_id');
+                select.innerHTML = '<option value="">Choose a book...</option>';
+                
+                data.books.forEach(book => {
+                    const option = document.createElement('option');
+                    option.value = book.book_id;
+                    option.textContent = `${book.title} by ${book.authors.join(', ')}`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Failed to load books:', error);
+                Utils.showAlert('Failed to load books list', 'danger');
+            }
+        };
+
+        UI.showCurrentCover = async (bookId) => {
+            try {
+                const data = await Utils.makeRequest(`/books/${bookId}`);
+                const preview = document.getElementById('currentCoverPreview');
+                
+                if (data.book.cover_image_url) {
+                    preview.innerHTML = `
+                        <img src="${data.book.cover_image_url}" class="img-thumbnail" style="max-width: 150px; max-height: 200px;" alt="Current Cover">
+                        <div class="mt-2">
+                            <small class="text-muted">Current cover for "${data.book.title}"</small>
+                        </div>
+                    `;
+                } else {
+                    preview.innerHTML = `
+                        <div class="text-center">
+                            <i class="fas fa-image fa-3x text-muted mb-2"></i>
+                            <div><small class="text-muted">No cover image set</small></div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Failed to load book details:', error);
+                document.getElementById('currentCoverPreview').innerHTML = `
+                    <div class="text-center text-danger">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                        <div><small>Failed to load book details</small></div>
+                    </div>
+                `;
+            }
+        };
+
+        UI.handleCoverUpdate = async () => {
+            const updateButton = document.querySelector('#updateCoverForm button[type="submit"]');
+            const originalButtonText = updateButton.innerHTML;
+            
+            try {
+                const bookId = document.getElementById('cover_book_id').value;
+                const fileInput = document.getElementById('cover_file_input');
+                const urlInput = document.getElementById('cover_url_input');
+                
+                if (!bookId) {
+                    Utils.showAlert('Please select a book', 'warning');
+                    return;
+                }
+                
+                // Show loading state
+                updateButton.disabled = true;
+                updateButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating Cover...';
+                
+                let coverUrl = '';
+                
+                // Check if file is uploaded
+                if (fileInput.files && fileInput.files[0]) {
+                    const formData = new FormData();
+                    formData.append('coverImage', fileInput.files[0]);
+                    
+                    const token = localStorage.getItem('library_token');
+                    if (!token) {
+                        throw new Error('Authentication required. Please login again.');
+                    }
+                    
+                    
+                    const uploadResponse = await fetch('/api/admin/upload-cover', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: formData
+                    });
+                    
+                    if (!uploadResponse.ok) {
+                        const errorData = await uploadResponse.json().catch(() => ({}));
+                        if (uploadResponse.status === 401) {
+                            throw new Error('Authentication failed. Please login again.');
+                        }
+                        throw new Error(errorData.error?.message || 'Failed to upload cover image');
+                    }
+                    
+                    const uploadData = await uploadResponse.json();
+                    coverUrl = uploadData.data.fullUrl;
+                    
+                } else if (urlInput.value.trim()) {
+                    // Use URL if provided
+                    coverUrl = urlInput.value.trim();
+                } else {
+                    Utils.showAlert('Please upload a file or provide an image URL', 'warning');
+                    return;
+                }
+                
+                // Update the book cover
+                const updateResponse = await Utils.makeRequest(`/admin/books/${bookId}/cover`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ cover_image_url: coverUrl })
+                });
+                
+                // Show success notification with more details
+                const bookTitle = document.getElementById('cover_book_id').selectedOptions[0]?.textContent || 'Selected book';
+                Utils.showAlert(`✅ Book cover updated successfully for "${bookTitle}"!`, 'success');
+                
+                // Show additional success message in the cover update history
+                const historyDiv = document.getElementById('coverUpdateHistory');
+                const timestamp = new Date().toLocaleString();
+                const successMessage = `
+                    <div class="alert alert-success alert-dismissible fade show mb-2" role="alert">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Cover Updated Successfully!</strong><br>
+                        <small>Book: ${bookTitle}</small><br>
+                        <small>Time: ${timestamp}</small>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+                historyDiv.innerHTML = successMessage + historyDiv.innerHTML;
+                
+                // Refresh the current cover preview
+                await UI.showCurrentCover(bookId);
+                
+                // Clear form
+                fileInput.value = '';
+                urlInput.value = '';
+                document.getElementById('newCoverPreview').style.display = 'none';
+                
+                // Refresh the current view to show updated cover
+                if (App.currentView === 'books') {
+                    UI.showBooksPage();
+                } else if (App.currentView === 'dashboard') {
+                    UI.showDashboard();
+                }
+                
+            } catch (error) {
+                console.error('Cover update error:', error);
+                Utils.showAlert(error.message || 'Failed to update book cover', 'danger');
+            } finally {
+                // Reset button state
+                updateButton.disabled = false;
+                updateButton.innerHTML = originalButtonText;
+            }
+        };
 
         // Admin Panel view and report renderer
-        UI.showAdminPanel = () => {
+        UI.showAdminPanel = async () => {
+            // Always check token first - don't rely on cached user data
+            const token = localStorage.getItem('library_token');
+            
+            if (!token) {
+                Utils.showAlert('Please login to access admin panel', 'warning');
+                return;
+            }
+            
+            // Check if user is already loaded and is staff
+            if (App.user && (App.user.user_type === 'staff' || App.user.user_type === 'admin')) {
+                // User is already loaded and is staff, proceed directly
+            } else {
+                // Load user data
+                try {
+                    const data = await Utils.makeRequest('/auth/profile');
+                    App.user = data.user;
+                } catch (error) {
+                    console.error('❌ Failed to load user data:', error);
+                    Utils.showAlert('Failed to load user data', 'danger');
+                    return;
+                }
+                
             if (!App.user || (App.user.user_type !== 'staff' && App.user.user_type !== 'admin')) {
                 Utils.showAlert('Staff access required.', 'warning');
                 return;
+                }
             }
             document.getElementById('mainContent').innerHTML = `
                 <div class="container my-4">
                     <h2 class="mb-3"><i class="fas fa-cog me-2"></i>Admin Panel</h2>
                     <ul class="nav nav-tabs" role="tablist">
                         <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-add">Add Book</a></li>
+                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-covers">Cover Management</a></li>
                         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-inv">Update Inventory</a></li>
                         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-retire">Retire Book</a></li>
                         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-reports">Reports</a></li>
@@ -3859,6 +4058,66 @@
                                 <div class="col-12"><button class="btn btn-primary" type="submit"><i class="fas fa-plus me-2"></i>Add Book</button></div>
                             </form>
                         </div>
+                        <div class="tab-pane fade" id="tab-covers">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5><i class="fas fa-image me-2"></i>Update Book Cover</h5>
+                                    <form id="updateCoverForm" class="row g-3">
+                                        <div class="col-12">
+                                            <label class="form-label">Select Book</label>
+                                            <select id="cover_book_id" class="form-select" required>
+                                                <option value="">Choose a book...</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">Current Cover</label>
+                                            <div id="currentCoverPreview" class="text-center p-3 border rounded bg-light">
+                                                <small class="text-muted">Select a book to see current cover</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">Upload New Cover Image</label>
+                                            <input id="cover_file_input" type="file" accept="image/*" class="form-control" required>
+                                            <small class="form-text text-muted">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                Supported formats: JPEG, JPG, PNG, GIF, WebP (Max: 5MB)
+                                            </small>
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">Or Paste Image URL</label>
+                                            <div class="input-group">
+                                                <input id="cover_url_input" class="form-control" placeholder="https://example.com/image.jpg">
+                                                <button class="btn btn-outline-secondary" type="button" id="previewUrlBtn">
+                                                    <i class="fas fa-eye"></i> Preview
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <div id="newCoverPreview" class="text-center p-3 border rounded bg-light" style="display: none;">
+                                                <img id="newCoverPreviewImg" class="img-thumbnail" style="max-width: 150px; max-height: 200px;" alt="New Cover Preview">
+                                                <div class="mt-2">
+                                                    <small class="text-success">
+                                                        <i class="fas fa-check-circle me-1"></i>
+                                                        New cover preview
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <button class="btn btn-primary" type="submit">
+                                                <i class="fas fa-upload me-2"></i>Update Cover
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5><i class="fas fa-list me-2"></i>Recent Cover Updates</h5>
+                                    <div id="coverUpdateHistory" class="border rounded p-3 bg-light">
+                                        <small class="text-muted">Cover update history will appear here</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="tab-pane fade" id="tab-inv">
                             <form id="inventoryForm" class="row g-3">
                                 <div class="col-md-4"><label class="form-label">Book ID</label><input id="inv_book_id" type="number" class="form-control" required></div>
@@ -3891,6 +4150,48 @@
                         </div>
                     </div>
                 </div>`;
+            
+            // Initialize cover management functionality
+            UI.loadBooksForCoverUpdate();
+            
+            // Add event listeners for cover management
+            document.getElementById('cover_book_id').addEventListener('change', async (e) => {
+                if (e.target.value) {
+                    await UI.showCurrentCover(e.target.value);
+                } else {
+                    document.getElementById('currentCoverPreview').innerHTML = `
+                        <small class="text-muted">Select a book to see current cover</small>
+                    `;
+                }
+            });
+            
+            // File input change handler
+            document.getElementById('cover_file_input').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const preview = document.getElementById('newCoverPreview');
+                        const img = document.getElementById('newCoverPreviewImg');
+                        img.src = event.target.result;
+                        preview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // URL preview button
+            document.getElementById('previewUrlBtn').addEventListener('click', () => {
+                const url = document.getElementById('cover_url_input').value.trim();
+                if (url) {
+                    const preview = document.getElementById('newCoverPreview');
+                    const img = document.getElementById('newCoverPreviewImg');
+                    img.src = url;
+                    preview.style.display = 'block';
+                } else {
+                    Utils.showAlert('Please enter an image URL', 'warning');
+                }
+            });
         };
 
         UI.renderReportResults = (type, data) => {
@@ -3904,7 +4205,7 @@
                     const rows = (payload.top_readers || []).map(u => `<tr><td>${u.user_id}</td><td>${u.username || ''}</td><td>${u.total_checkouts}</td></tr>`).join('');
                     container.innerHTML = `<div class="table-responsive"><table class="table table-sm"><thead><tr><th>User ID</th><th>User</th><th>Checkouts</th></tr></thead><tbody>${rows}</tbody></table></div>`;
                 } else {
-                    const rows = (payload.low_availability || []).map(b => `<tr><td>${b.book_id}</td><td>${b.title}</td><td>${b.available_copies}</td><td>${b.total_copies}</td></tr>`).join('');
+                    const rows = (payload.low_availability_books || []).map(b => `<tr><td>${b.book_id}</td><td>${b.title}</td><td>${b.available_copies}</td><td>${b.total_copies}</td></tr>`).join('');
                     container.innerHTML = `<div class="table-responsive"><table class="table table-sm"><thead><tr><th>ID</th><th>Title</th><th>Available</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div>`;
                 }
             } catch (_) { container.innerHTML = `<div class="alert alert-danger">Failed to render report.</div>`; }
@@ -4147,7 +4448,6 @@
 
         // Show all user checkouts
         UI.showAllCheckouts = async () => {
-            console.log('🔍 showAllCheckouts called');
             if (!App.user) {
                 Utils.showAlert('Please log in to view your checkouts.', 'warning');
                 return;
@@ -4155,7 +4455,6 @@
             
             // Set current view
             App.currentView = 'checkouts';
-            console.log('🔍 Set current view to:', App.currentView);
 
             document.getElementById('mainContent').innerHTML = `
                 <div class="container my-4">
@@ -4164,10 +4463,10 @@
                             <button class="btn btn-outline-secondary back-to-dashboard-btn">
                                 <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
                             </button>
-                            <button class="btn btn-outline-primary refresh-checkouts-btn" onclick="UI.forceGlobalRefresh()">
+                            <button class="btn btn-outline-primary refresh-checkouts-btn" id="refreshCheckoutsBtn">
                                 <i class="fas fa-sync-alt me-2"></i>Refresh
                             </button>
-                            <button class="btn btn-outline-success test-return-btn" onclick="UI.showReturnModal(1, 'Test Book')">
+                            <button class="btn btn-outline-success test-return-btn" id="testReturnBtn">
                                 <i class="fas fa-test me-2"></i>Test Return
                             </button>
                         </div>
@@ -4252,8 +4551,7 @@
                                         <br>
                                         <button class="btn btn-warning btn-sm mt-2 return-btn" 
                                                 data-book-id="${checkout.book_id}" 
-                                                data-book-title="${checkout.title}"
-                                                onclick="UI.showReturnModal(${checkout.book_id}, '${checkout.title.replace(/'/g, "\\'")}')">
+                                                data-book-title="${checkout.title}">
                                             <i class="fas fa-undo me-1"></i>Return Book
                                         </button>
                                     `}
@@ -4361,6 +4659,11 @@
                     return false;
                 }
 
+                // Set loading state
+                if (showLoadingState) {
+                    this.setFallbackImage(imgElement, 'loading');
+                }
+
                 // Check cache first
                 if (this.imageCache.has(imageUrl)) {
                     imgElement.src = this.imageCache.get(imageUrl);
@@ -4403,7 +4706,6 @@
                         if (success) return true;
                         
                         if (attempt < maxRetries) {
-                            console.log(`Retry attempt ${attempt + 1} for ${imageUrl}`);
                             await this.delay(this.retryDelay * attempt); // Exponential backoff
                         }
                     } catch (error) {
@@ -4457,7 +4759,7 @@
                     if (url && !this.imageCache.has(url)) {
                         const img = new Image();
                         img.onload = () => this.imageCache.set(url, url);
-                        img.onerror = () => console.warn(`Failed to preload: ${url}`);
+                        img.onerror = () => {};
                         img.src = url;
                     }
                 });
@@ -4473,7 +4775,7 @@
         // Initialize global image loader
         const imageLoader = new ImageLoader();
 
-        // Enhanced image loading function
+        // Enhanced image loading function with multiple fallback strategies
         function loadBookCover(imgElement, imageUrl, options = {}) {
             return imageLoader.loadImage(imgElement, imageUrl, {
                 fallbackOnError: true,
@@ -4484,17 +4786,46 @@
                 },
                 onError: (error) => {
                     console.warn(`❌ Image loading failed: ${imageUrl} - ${error}`);
+                    
+                    // Try alternative loading approach
+                    setTimeout(() => {
+                        console.log(`🔄 Retrying image load with alternative method: ${imageUrl}`);
+                        loadImageWithAlternativeMethod(imgElement, imageUrl);
+                    }, 500);
                 }
             });
+        }
+
+        // Alternative image loading method
+        function loadImageWithAlternativeMethod(imgElement, imageUrl) {
+            const img = new Image();
+            
+            img.onload = () => {
+                imgElement.src = imageUrl;
+                imgElement.style.opacity = '1';
+            };
+            
+            img.onerror = () => {
+                // Use a reliable fallback image
+                imgElement.src = 'https://covers.openlibrary.org/b/isbn/9780061120084-L.jpg'; // To Kill a Mockingbird - known to work
+                imgElement.style.opacity = '1';
+            };
+            
+            img.src = imageUrl;
         }
 
         // Process all book cover images in the current view
         function processBookCoverImages() {
             const images = document.querySelectorAll('img[data-cover-url]');
-            images.forEach(img => {
+            
+            images.forEach((img, index) => {
                 const coverUrl = img.getAttribute('data-cover-url');
+                
                 if (coverUrl && coverUrl.trim() !== '') {
+                    // Add a small delay to ensure DOM is ready
+                    setTimeout(() => {
                     loadBookCover(img, coverUrl);
+                    }, index * 50); // Stagger loading by 50ms per image
                 } else {
                     // Set default fallback for images without URLs
                     imageLoader.setFallbackImage(img, 'default');
@@ -4506,6 +4837,24 @@
         function initializeImageLoading() {
             // Process existing images
             processBookCoverImages();
+            
+            // Retry failed images after a delay
+            setTimeout(() => {
+                processBookCoverImages();
+            }, 1000);
+            
+            // Force reload all images after a longer delay
+            setTimeout(() => {
+                const images = document.querySelectorAll('img[data-cover-url]');
+                images.forEach((img, index) => {
+                    const coverUrl = img.getAttribute('data-cover-url');
+                    if (coverUrl && coverUrl.trim() !== '') {
+                        // Force reload by adding timestamp
+                        const urlWithTimestamp = coverUrl + (coverUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+                        img.src = urlWithTimestamp;
+                    }
+                });
+            }, 3000);
             
             // Watch for new images added to the DOM
             const observer = new MutationObserver((mutations) => {

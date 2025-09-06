@@ -1,83 +1,62 @@
 @echo off
+title Smart Library Platform Server
+color 0A
+
+echo.
 echo ========================================
 echo   Smart Library Platform Server
-echo   Enhanced Startup Script
 echo ========================================
+echo.
 
 REM Check if Node.js is installed
 node --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo ❌ Error: Node.js is not installed or not in PATH
+if errorlevel 1 (
+    echo ERROR: Node.js is not installed or not in PATH
     echo Please install Node.js from https://nodejs.org/
     pause
     exit /b 1
 )
 
-echo ✅ Node.js found: 
-node --version
-
-REM Check if dependencies are installed
-if not exist "node_modules" (
-    echo 📦 Installing dependencies...
-    npm install
-    if %errorlevel% neq 0 (
-        echo ❌ Error: Failed to install dependencies
-        pause
-        exit /b 1
-    )
-    echo ✅ Dependencies installed successfully
-) else (
-    echo ✅ Dependencies already installed
-)
-
-REM Enhanced port cleanup
-echo 🔧 Checking for port conflicts...
-set PORT_FOUND=0
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr :3000 2^>nul') do (
-    if not "%%a"=="0" (
-        echo 🔍 Found process %%a using port 3000
-        set PORT_FOUND=1
-        echo 🛑 Terminating process %%a...
-        taskkill /F /PID %%a >nul 2>&1
-        if %errorlevel% neq 0 (
-            echo ⚠️  Could not terminate process %%a
-        ) else (
-            echo ✅ Process %%a terminated
-        )
-    )
-)
-
-if %PORT_FOUND%==0 (
-    echo ✅ Port 3000 is available
-) else (
-    echo ⏳ Waiting for port to be released...
-    timeout /t 3 /nobreak >nul
-)
-
-REM Check for .env file
-if not exist ".env" (
-    echo ⚠️  Warning: .env file not found
-    echo Creating from example...
-    if exist "config.env.example" (
-        copy "config.env.example" ".env" >nul
-        echo ✅ Created .env file from example
-        echo ⚠️  Please edit .env file with your database credentials
-    ) else (
-        echo ❌ config.env.example not found
-    )
-)
-
-REM Start the server with enhanced error handling
-echo 🚀 Starting Smart Library Platform Server...
-echo ========================================
-node server.js
-
-if %errorlevel% neq 0 (
-    echo ❌ Server failed to start
-    echo Check the error messages above
+REM Check if package.json exists
+if not exist "package.json" (
+    echo ERROR: package.json not found
+    echo Please run this script from the project root directory
     pause
     exit /b 1
 )
 
-echo Server stopped
+REM Kill any existing processes on port 3000
+echo Checking for existing processes on port 3000...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :3000') do (
+    if not "%%a"=="0" (
+        echo Killing process %%a on port 3000...
+        taskkill /PID %%a /F >nul 2>&1
+    )
+)
+
+REM Wait a moment for processes to be killed
+timeout /t 2 /nobreak >nul
+
+REM Set environment variables
+set PORT=3000
+set NODE_ENV=development
+
+echo Starting Smart Library Platform on port %PORT%...
+echo.
+echo Web Application: http://localhost:%PORT%
+echo Health Check: http://localhost:%PORT%/health
+echo API Docs: http://localhost:%PORT%/api
+echo.
+echo Test Accounts:
+echo   Staff: admin/admin123, thinh/12345678
+echo   Reader: duc/12345678910, Mary/mytra2012@
+echo.
+echo Press Ctrl+C to stop the server
+echo.
+
+REM Start the server
+node server.js
+
+echo.
+echo Server stopped.
 pause

@@ -4,6 +4,7 @@ const { getMySQLConnection } = require('../config/database');
 const fs = require('fs');
 const path = require('path');
 const { authenticate, requireStaff } = require('../middleware/auth');
+const upload = require('../middleware/upload');
 
 const router = express.Router();
 
@@ -36,6 +37,17 @@ router.post('/books', authenticate, requireStaff, async (req, res) => {
                 }
             });
         }
+        
+        // Convert authors from objects to strings if needed
+        const authorNames = authors.map(author => {
+            if (typeof author === 'string') {
+                return author;
+            } else if (author && author.name) {
+                return author.name;
+            } else {
+                throw new Error('Invalid author format');
+            }
+        });
         
         if (total_copies <= 0) {
             return res.status(400).json({
@@ -153,42 +165,29 @@ router.post('/books', authenticate, requireStaff, async (req, res) => {
             }
             
             // Add authors
-            for (let i = 0; i < authors.length; i++) {
-                const author = authors[i];
+            for (let i = 0; i < authorNames.length; i++) {
+                const authorName = authorNames[i];
                 let authorId;
                 
-                if (author.author_id) {
-                    // Existing author
-                    authorId = author.author_id;
-                } else if (author.name) {
-                    // Check if author exists by first_name and last_name
-                    const nameParts = author.name.trim().split(' ');
-                    const firstName = nameParts[0] || '';
-                    const lastName = nameParts.slice(1).join(' ') || '';
-                    
-                    const [existingAuthor] = await connection.execute(
-                        'SELECT author_id FROM authors WHERE first_name = ? AND last_name = ?',
+                // Check if author exists by first_name and last_name
+                const nameParts = authorName.trim().split(' ');
+                const firstName = nameParts[0] || '';
+                const lastName = nameParts.slice(1).join(' ') || '';
+                
+                const [existingAuthor] = await connection.execute(
+                    'SELECT author_id FROM authors WHERE first_name = ? AND last_name = ?',
+                    [firstName, lastName]
+                );
+                
+                if (existingAuthor.length > 0) {
+                    authorId = existingAuthor[0].author_id;
+                } else {
+                    // Create new author
+                    const [authorResult] = await connection.execute(
+                        'INSERT INTO authors (first_name, last_name) VALUES (?, ?)',
                         [firstName, lastName]
                     );
-                    
-                    if (existingAuthor.length > 0) {
-                        authorId = existingAuthor[0].author_id;
-                    } else {
-                        // Create new author
-                        const [authorResult] = await connection.execute(
-                            'INSERT INTO authors (first_name, last_name) VALUES (?, ?)',
-                            [firstName, lastName]
-                        );
-                        authorId = authorResult.insertId;
-                    }
-                } else {
-                    await connection.rollback();
-                    return res.status(400).json({
-                        error: {
-                            message: 'Author must have name or valid author_id',
-                            code: 'INVALID_AUTHOR'
-                        }
-                    });
+                    authorId = authorResult.insertId;
                 }
                 
                 // Link book to author
@@ -637,6 +636,127 @@ router.get('/reports', authenticate, requireStaff, async (req, res) => {
         });
     } finally {
         connection.release();
+    }
+});
+
+// Debug endpoint to check authentication
+router.get('/debug-auth', authenticate, requireStaff, async (req, res) => {
+    res.json({
+        success: true,
+        message: 'Authentication successful',
+        user: req.user,
+        timestamp: new Date().toISOString()
+    });
+});
+
+// POST /api/admin/upload-cover - Upload book cover image
+router.post('/upload-cover', authenticate, requireStaff, upload.single('coverImage'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                error: {
+                    message: 'No file uploaded',
+                    code: 'NO_FILE'
+                }
+            });
+        }
+
+        // Generate the URL for the uploaded file
+        const coverUrl = `/uploads/${req.file.filename}`;
+        
+        res.json({
+            success: true,
+            message: 'Cover image uploaded successfully',
+            data: {
+                filename: req.file.filename,
+                originalName: req.file.originalname,
+                size: req.file.size,
+                coverUrl: coverUrl,
+                fullUrl: `${req.protocol}://${req.get('host')}${coverUrl}`
+            }
+        });
+    } catch (error) {
+        console.error('Upload error:', error);
+        res.status(500).json({
+            error: {
+                message: 'Failed to upload cover image',
+                code: 'UPLOAD_ERROR',
+                details: error.message
+            }
+        });
+    }
+});
+
+// PUT /api/admin/books/:id/cover - Update book cover image
+router.put('/books/:id/cover', authenticate, requireStaff, async (req, res) => {
+    let connection;
+    try {
+        connection = await getMySQLConnection();
+        const bookId = parseInt(req.params.id);
+        const { cover_image_url } = req.body;
+        
+        if (!cover_image_url) {
+            return res.status(400).json({
+                error: {
+                    message: 'Cover image URL is required',
+                    code: 'MISSING_COVER_URL'
+                }
+            });
+        }
+        
+        // Check if book exists
+        const [bookRows] = await connection.execute(
+            'SELECT book_id, title FROM books WHERE book_id = ?',
+            [bookId]
+        );
+        
+        if (bookRows.length === 0) {
+            return res.status(404).json({
+                error: {
+                    message: 'Book not found',
+                    code: 'BOOK_NOT_FOUND'
+                }
+            });
+        }
+        
+        // Update the cover image URL
+        await connection.execute(
+            'UPDATE books SET cover_image_url = ? WHERE book_id = ?',
+            [cover_image_url, bookId]
+        );
+        
+        // Log the action (temporarily disabled for testing)
+        console.log('Cover update successful for book:', bookId);
+        
+        res.json({
+            success: true,
+            message: 'Book cover updated successfully',
+            data: {
+                book_id: bookId,
+                book_title: bookRows[0].title,
+                cover_image_url: cover_image_url
+            }
+        });
+        
+    } catch (error) {
+        console.error('Update cover error:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            bookId: req.params.id,
+            coverUrl: req.body.cover_image_url
+        });
+        res.status(500).json({
+            error: {
+                message: 'Failed to update book cover',
+                code: 'UPDATE_COVER_ERROR',
+                details: error.message
+            }
+        });
+    } finally {
+        if (connection) {
+            connection.release();
+        }
     }
 });
 

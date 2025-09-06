@@ -34,7 +34,11 @@ CREATE TABLE users (
 -- Authors table
 CREATE TABLE authors (
     author_id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(100) NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    biography TEXT,
+    birth_date DATE,
+    nationality VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -149,7 +153,7 @@ CREATE INDEX idx_books_title ON books(title);
 CREATE INDEX idx_books_genre ON books(genre);
 CREATE INDEX idx_books_publisher ON books(publisher);
 CREATE INDEX idx_books_active_available ON books(is_active, available_copies);
-CREATE INDEX idx_authors_name ON authors(name);
+CREATE INDEX idx_authors_name ON authors(first_name, last_name);
 
 -- Report optimization
 CREATE INDEX idx_checkouts_date_range ON checkouts(checkout_date, is_returned);
@@ -162,7 +166,7 @@ CREATE INDEX idx_checkout_analytics ON checkouts(book_id, checkout_date, is_retu
 
 -- Full-text search index for book search
 ALTER TABLE books ADD FULLTEXT(title, description);
-ALTER TABLE authors ADD FULLTEXT(name);
+ALTER TABLE authors ADD FULLTEXT(first_name, last_name);
 
 -- Insert sample data for testing
 -- Sample users
@@ -173,12 +177,12 @@ INSERT INTO users (username, email, password_hash, first_name, last_name, user_t
 ('reader2', 'reader2@library.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Alice', 'Johnson', 'reader');
 
 -- Sample authors
-INSERT INTO authors (name) VALUES
-('George Orwell'),
-('Jane Austen'),
-('Mark Twain'),
-('Virginia Woolf'),
-('Ernest Hemingway');
+INSERT INTO authors (first_name, last_name, biography, birth_date, nationality) VALUES
+('George', 'Orwell', 'English novelist, essayist, journalist and critic. His work is characterised by lucid prose, biting social criticism, opposition to totalitarianism, and outspoken support of democratic socialism.', '1903-06-25', 'British'),
+('Jane', 'Austen', 'English novelist known primarily for her six major novels, which interpret, critique and comment upon the British landed gentry at the end of the 18th century.', '1775-12-16', 'British'),
+('Mark', 'Twain', 'American writer, humorist, entrepreneur, publisher, and lecturer. He was lauded as the "greatest humorist the United States has produced".', '1835-11-30', 'American'),
+('Virginia', 'Woolf', 'English writer, considered one of the most important modernist 20th-century authors and a pioneer in the use of stream of consciousness as a narrative device.', '1882-01-25', 'British'),
+('Ernest', 'Hemingway', 'American novelist, short-story writer, and journalist. His economical and understated style had a strong influence on 20th-century fiction.', '1899-07-21', 'American');
 
 -- Sample books
 INSERT INTO books (title, isbn, publisher, publication_date, genre, pages, description, total_copies, available_copies, is_ebook) VALUES
