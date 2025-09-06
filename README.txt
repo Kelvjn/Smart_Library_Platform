@@ -162,3 +162,4 @@ VERSION
 Smart Library Platform v1.0.0
 Built by Lu Duc Thinh
 Last Updated: September 2025
+link to Github Repository: https://github.com/Kelvjn/Smart_Library_Platform.git
