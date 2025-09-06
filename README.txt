@@ -14,7 +14,7 @@ CONTRIBUTION SCORES
 
 VIDEO DEMONSTRATION
 -------------------
-Demo Video URL: 
+Demo Video URL: https://rmiteduau-my.sharepoint.com/:v:/r/personal/s3992133_rmit_edu_vn/Documents/Recordings/Private-20250907_060833-Meeting%20Recording.mp4?csf=1&web=1&e=83rCqz&nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJTdHJlYW1XZWJBcHAiLCJyZWZlcnJhbFZpZXciOiJTaGFyZURpYWxvZy1MaW5rIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXcifX0%3D
 Note: Video must be 25 minutes total (5 minutes presentation + 20 minutes demo)
 Permission: Set to allow read access to all RMIT accounts
 
