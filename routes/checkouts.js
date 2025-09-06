@@ -933,8 +933,7 @@ router.get('/statistics', requireStaff, async (req, res) => {
                 COUNT(CASE WHEN is_returned = FALSE AND due_date < CURDATE() THEN 1 END) as overdue_checkouts,
                 COUNT(CASE WHEN is_late = TRUE THEN 1 END) as late_returns,
                 AVG(CASE WHEN is_returned = TRUE THEN DATEDIFF(return_date, checkout_date) END) as avg_loan_duration,
-                SUM(late_fee) as total_late_fees
-            FROM checkouts
+                SUM(late_fee) as total_late_fe            FROM checkouts
         `);
         
         // Get monthly statistics for the last 12 months

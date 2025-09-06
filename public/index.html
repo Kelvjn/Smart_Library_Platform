@@ -3410,6 +3410,21 @@
             modal.show();
         };
 
+        // Missing function to handle "Add Review" button clicks
+        UI.showAddReviewForm = async (bookId) => {
+            try {
+                // Get book details to retrieve the title
+                const bookData = await Utils.makeRequest(`/books/${bookId}`);
+                const bookTitle = bookData.book.title;
+                
+                // Use the existing showReviewModal function
+                UI.showReviewModal(bookId, bookTitle);
+            } catch (error) {
+                console.error('Error loading book details for review:', error);
+                Utils.showAlert('Failed to load book details. Please try again.', 'danger');
+            }
+        };
+
         UI.submitReview = async (bookId, rating, comment) => {
             try {
                 const response = await Utils.makeRequest('/reviews', {
